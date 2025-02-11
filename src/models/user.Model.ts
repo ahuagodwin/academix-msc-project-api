@@ -2,10 +2,14 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import mongoose, { Schema, Document, Model,Types } from 'mongoose';
-import Wallet from "./wallet.model"
 
+// Define Role Interface
+interface IRole extends Document {
+  name: string;
+  permissions: string[];
+}
 
-export interface ITransaction {
+interface ITransaction {
   type: "deposit" | "withdrawal";
   amount: number;
   timestamp: Date;
@@ -13,7 +17,7 @@ export interface ITransaction {
   status: "pending" | "completed" | "failed";
 }
 
-export interface IWallet extends Document {
+ interface IWallet extends Document {
   user: Types.ObjectId;
   balance: number;
   currency: string;
@@ -24,7 +28,7 @@ export interface IWallet extends Document {
 
 
 // USER ROLE
-export enum UserRole {
+enum UserRole {
   LECTURER = "teacher",
   ADMIN = "admin",
   STUDENT = "student",
@@ -33,7 +37,7 @@ export enum UserRole {
 
 
 // USER DEPARTMENT
-export enum UserDepartment {
+enum UserDepartment {
   COMPUTER_SCIENCE = "Computer Science",
   ENGLISH = "English",
   MATHS = "Mathematics",
@@ -42,7 +46,7 @@ export enum UserDepartment {
 }
 
 // USER FACULTY
-export enum UserFaculty {
+enum UserFaculty {
   ICT = "Information and Communication Technology",
   ARTS = "Arts",
   SCIENCES = "Science",
@@ -54,7 +58,7 @@ export enum UserFaculty {
 }
 
 // USER PERMISSIONS
-export enum UserPermissions {
+enum UserPermissions {
   READ = "read",
   WRITE = "write",
   DELETE = "delete",
@@ -62,14 +66,14 @@ export enum UserPermissions {
 }
 
 // USER STORAGE SPACE
-export enum UserFileStorageSpace {
+enum UserFileStorageSpace {
   BASIC_GB_10 = "10 GB",
   STANDARD_GB_20 = "20 GB",
   PREMIUM_GB_50 = "50 GB",
 }
 
 // USER ADMISSION TYPE 
-export enum UserAdmissionType {
+enum UserAdmissionType {
   REGULAR = "RG", // Regular
   INTERNSHIP = "INT", // Interfaceship
   PART_TIME = "PT", // Part Time
@@ -100,7 +104,7 @@ export interface IUser extends Document {
   isPasswordMatched(enteredPassword: string): Promise<boolean>;
   isBlocked: boolean;
   refreshToken: string;
-  role: string;
+  role: string | IRole;
   department: string;
   faculty: string;
   permissions: string[];
@@ -201,11 +205,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     refreshToken: {
       type: String
     },
-    role: {
-      type: String,
-      enum: Object.values(UserRole),
-      default: UserRole.STUDENT
-    },
+    role: { type: String, ref: "Role", default: UserRole.STUDENT, required: true },
     department: {
       type: String,
       enum: Object.values(UserDepartment),

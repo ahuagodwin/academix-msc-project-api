@@ -1,6 +1,5 @@
 import mongoose, { Schema, Model, Document, Types } from "mongoose";
-
-export interface ITransaction {
+interface ITransaction {
   type: "deposit" | "withdrawal";
   amount: number;
   timestamp: Date;
@@ -8,7 +7,7 @@ export interface ITransaction {
   status: "pending" | "completed" | "failed";
 }
 
-export interface IWallet extends Document {
+ interface IWallet extends Document {
   user: string;
   balance: number;
   currency: string;

@@ -9,6 +9,15 @@ import { generateRefreshToken, generateToken } from "../config/token";
 import { validateMongoDbId } from "../config/validateMongoId";
 import { generateOTP, sendMail } from "../config/nodeMailler";
 import Wallet from "../models/wallet.model";
+import { Role } from "../models/roles.model";
+
+
+enum UserRole {
+  LECTURER = "teacher",
+  ADMIN = "admin",
+  STUDENT = "student",
+  STAFF = "staff"
+}
 
 // Create a new user
 export const createUser = asyncHandler(
@@ -25,7 +34,7 @@ export const createUser = asyncHandler(
       return;
     }
 
-    const { email, mobile, firstName, lastName, password } = value;
+    const { email, mobile, firstName, lastName, password, roleName } = value;
 
     try {
       // Check if the user already exists
@@ -60,6 +69,14 @@ export const createUser = asyncHandler(
         emailVerificationCodeValidation: Date.now() + 10 * 60 * 1000 ,
       });
 
+      await newUser.save();
+
+      // Create and assign role
+      let role = await Role.findOne({ name: roleName });
+      if (!role) {
+        role = await Role.create({ name: roleName, user: newUser.id, permissions: ["read"] });
+      }
+      newUser.role = role.roleId;
       await newUser.save();
 
         // Check if the user already has a wallet

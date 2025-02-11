@@ -37,8 +37,7 @@ export const authenticate = asyncHandler(
 
       // Fetch the user from the database using the decoded ID
       const user = await User.findOne(decoded.id);
-      console.log(" authenticated user:", user);
-
+      
       // If no user is found, return an error
       if (!user) {
         res.status(401).json({

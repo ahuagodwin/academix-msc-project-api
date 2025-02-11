@@ -1,9 +1,10 @@
 import express from 'express';
 import userController from "../controller/userController"
 import auditLogController from "../controller/auditLog.controller"
-// import { requestRateLimit } from '../middlewares/rateLimite';
+import * as accessController from "../controller/control.controller"
 import { auditLogMiddleware } from '../middlewares/auditLog.md';
 import { authenticate } from '../middlewares/authenticate.md';
+import { accessControl } from '../middlewares/access_control';
 
 
 const router = express.Router();
@@ -21,7 +22,7 @@ router.post("/user/auth/forgot-password/", auditLogMiddleware({action: "forgot p
 router.post("/user/auth/reset-password/:token/", auditLogMiddleware({action: "reset password"}), userController.resetPassword)
 router.post("/user/auth/reset-password-verify/", auditLogMiddleware({action: "reset password verify"}), userController.verifyResetPasswordOTP)
 router.post("/user/client/refreshToken/", authenticate, auditLogMiddleware({action: "refresh token"}), userController.refreshToken)
-router.get("/user/client/all-users/",  authenticate, auditLogMiddleware({action: "display all users"}), userController.getAllUser)
+router.get("/user/client/all-users/",  authenticate, accessControl(["admin", 'student'], ["read"]), auditLogMiddleware({action: "display all users"}), userController.getAllUser)
 router.get(`/user/client/user/:id/`,  authenticate, auditLogMiddleware({action: "get a user record"}), userController.getSingleUser)
 router.delete("/user/client/delete-user/:id/", authenticate, authenticate, auditLogMiddleware({action: "delete user"}), userController.deleteUser)
 router.patch("/user/client/update-user/", authenticate, auditLogMiddleware({action: "update user record"}), userController.updateUser)
@@ -30,9 +31,9 @@ router.post("/user/client/block-unblock/:id/", authenticate, auditLogMiddleware(
 router.patch("/user/client/update-role/:id/", authenticate, auditLogMiddleware({action: "update role"}), userController.updateUserRole)
 
 
-
 // admin routes 
 router.post("/console/admin/auth/login/", auditLogMiddleware({action: "admin login"}), userController.loginUser)
 router.get("/console/admin/audit-logs/", authenticate, auditLogMiddleware({action: "all audit logs"}), auditLogController.getAuditLogs)
+router.put("/admin/client/role/:userId/", authenticate, accessControl(["admin", "super admin"], ["write"]), auditLogMiddleware({action: "update role"}), accessController.updateUserRoleAndPermissions)
 
 module.exports = router;
