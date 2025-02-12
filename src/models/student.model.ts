@@ -19,7 +19,7 @@ interface ITransaction {
 
 interface IWallet extends Document {
   walletId: string;
-  userId: string;
+  StudentId: string;
   balance: number;
   currency: string;
   transactions: ITransaction[];
@@ -27,18 +27,14 @@ interface IWallet extends Document {
   withdraw(amount: number, description?: string): Promise<boolean>;
 }
 
-// USER ROLE
-enum UserRole {
+// Student ROLE
+enum StudentRole {
   LECTURER = "teacher", // teachers
   STUDENT = "student", // students
-  SUPER_ADMIN = "super admin", // for dean, vc, and faculty officer
-  ADMIN = "admin", // for staff of the faculty, dean and vc
-  HOD = "head of department", //head of a department
-  HOD_ADMIN = "administrator", // for staff of the faculty
 }
 
-// USER DEPARTMENT
-enum UserDepartment {
+// Student DEPARTMENT
+enum StudentDepartment {
   COMPUTER_SCIENCE = "Computer Science",
   ENGLISH = "English",
   MATHS = "Mathematics",
@@ -47,8 +43,8 @@ enum UserDepartment {
 }
 
 
-// USER FACULTY
-enum UserFaculty {
+// Student FACULTY
+enum StudentFaculty {
   ICT = "Information and Communication Technology",
   ARTS = "Arts",
   SCIENCES = "Science",
@@ -59,15 +55,15 @@ enum UserFaculty {
   CMS = "Applied and Natural Science"
 }
 
-// USER STORAGE SPACE
-enum UserFileStorageSpace {
+// Student STORAGE SPACE
+enum StudentFileStorageSpace {
   BASIC_GB_4 = "4 GB",
   STANDARD_GB_10 = "10 GB",
   PREMIUM_GB_20 = "20 GB",
 }
 
-// USER ADMISSION TYPE 
-enum UserAdmissionType {
+// Student ADMISSION TYPE 
+enum StudentAdmissionType {
   REGULAR = "RG", // Regular
   INTERNSHIP = "INT", // Internship
   PART_TIME = "PT", // Part Time
@@ -79,8 +75,8 @@ enum UserAdmissionType {
   DOCTORATE = "PhD",
 }
 
-// Define the interface for a User document
-export interface IUser extends Document {
+// Define the interface for a Student document
+export interface IStudent extends Document {
   id?: string
   firstName: string;
   lastName: string;
@@ -99,7 +95,6 @@ export interface IUser extends Document {
   isBlocked: boolean;
   refreshToken: string;
   role: string | IRole;
-  schoolName: string | null;
   department: string
   faculty: string;
   storage_space: string;
@@ -112,14 +107,14 @@ export interface IUser extends Document {
   wallet: string | IWallet; 
 }
 
-// Define the Schema for the User model
-const userSchema: Schema<IUser> = new mongoose.Schema(
+// Define the Schema for the Student model
+const StudentSchema: Schema<IStudent> = new mongoose.Schema(
   {
     id: {
       type: String,
       unique: true,
       required: true,
-      default: function (this: IUser) {
+      default: function (this: IStudent) {
         return this._id?.toString()
       },
     },
@@ -146,13 +141,13 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     },
     admissionType: {
       type: String,
-      enum: Object.values(UserAdmissionType),
-      default: UserAdmissionType.REGULAR
+      enum: Object.values(StudentAdmissionType),
+      default: StudentAdmissionType.REGULAR
     },
     matric_number: {
       type: String,
       unique: true,
-      default: function (this: IUser) {
+      default: function (this: IStudent) {
         const departmentInitials = this.department
           .split(" ")
           .map(word => word[0])
@@ -207,29 +202,24 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     refreshToken: {
       type: String
     },
-    role: { type: String, ref: "Role", default: UserRole.SUPER_ADMIN, required: true },
-    schoolName: {
-      type: String,
-      ref: "School",
-      required: true,
-    },
+    role: { type: String, ref: "Role", default: StudentRole.STUDENT, required: true },
     department: {
       type: String,
       ref: "Department",
       required: true,
-      default: UserDepartment.COMPUTER_SCIENCE,
+      default: StudentDepartment.COMPUTER_SCIENCE,
     },
     faculty: {
       type: String,
       ref: "Faculty",
       required: true,
-      default: UserFaculty.ICT
+      default: StudentFaculty.ICT
     },
     storage_space: {
       type: String,
       ref: "StorageSpace",
       required: true,
-      default: UserFileStorageSpace.BASIC_GB_4
+      default: StudentFileStorageSpace.BASIC_GB_4
     },
     wallet: {
       type: String,
@@ -246,7 +236,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
 );
 
 // Hash the password before saving it to the database
-userSchema.pre('save', async function (next) {
+StudentSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   if (this.isModified('password')) {
@@ -257,12 +247,12 @@ userSchema.pre('save', async function (next) {
 
 
 // Compare entered password with the hashed password
-userSchema.methods.isPasswordMatched = async function (enteredPassword: string): Promise<boolean> {
+StudentSchema.methods.isPasswordMatched = async function (enteredPassword: string): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Create a password reset token and set expiration date
-userSchema.methods.createPasswordResetToken = async function (): Promise<string> {
+StudentSchema.methods.createPasswordResetToken = async function (): Promise<string> {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   this.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000);
@@ -271,11 +261,11 @@ userSchema.methods.createPasswordResetToken = async function (): Promise<string>
 
 
 // Check if password reset token has expired
-userSchema.methods.isPasswordResetTokenExpired = function (): boolean {
+StudentSchema.methods.isPasswordResetTokenExpired = function (): boolean {
   return Date.now() > this.passwordResetExpires?.getTime();
 };
 
 // Export the model with proper typing
-const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);
+const Student: Model<IStudent> = mongoose.model<IStudent>('Student', StudentSchema);
 
-export default User;
+export default Student;

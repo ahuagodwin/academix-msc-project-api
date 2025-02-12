@@ -20,6 +20,8 @@ export const signUpSchema = Joi.object({
   firstName: Joi.string().alphanum().min(3).max(30).required(),
   lastName: Joi.string().alphanum().min(3).max(30).required(),
   mobile: Joi.string().pattern(new RegExp("^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-s./0-9]*$")).required(),
+  facultyName:  Joi.string().min(3).max(30).required(),
+  departmentName:  Joi.string().min(3).max(30).required(),
 });
 
 

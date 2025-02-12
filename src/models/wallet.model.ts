@@ -8,7 +8,8 @@ interface ITransaction {
 }
 
  interface IWallet extends Document {
-  user: string;
+  walletId: string
+  userId: string;
   balance: number;
   currency: string;
   transactions: ITransaction[];
@@ -19,15 +20,13 @@ interface ITransaction {
 // Define the Schema for the Wallet model
 const walletSchema: Schema<IWallet> = new mongoose.Schema(
   {
-    id: {
+    walletId: {
       type: String,
       unique: true,
       required: true,
-      default: function (this: IWallet) {
-        return this._id?.toString();
-      }
+      default: () => new mongoose.Types.ObjectId().toString(),
     },
-    user: {
+    userId: {
       type: String,
       ref: "User",
       required: true,

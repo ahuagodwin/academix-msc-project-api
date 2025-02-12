@@ -13,21 +13,7 @@ import { Role } from "../models/roles.model";
 import { Department } from "../models/department.model"
 import { Faculty } from "../models/faculty.model"
 import { generateInitials } from "../utils/utils"
-import { School } from "../models/school.model";
-import { StorageSpace } from "../models/storage_space.model";
 
-
-enum UserFileStorageSpace {
-  BASIC_GB_4 = "4 GB",
-  STANDARD_GB_10 = "10 GB",
-  PREMIUM_GB_20 = "20 GB",
-}
-
-enum UserFileStorageSpaceName {
-  BASIC = "Basic",
-  STANDARD = "Standard",
-  PREMIUM = "Premium",
-}
 
 // Create a new user
 export const createUser = asyncHandler(
@@ -40,22 +26,20 @@ export const createUser = asyncHandler(
       return;
     }
 
-    const { email, mobile, firstName, lastName, password, roleName, schoolName, permissions, departmentName, facultyName } = value;
+    const { email, mobile, firstName, lastName, password, roleName, departmentName, facultyName } = value;
 
     let newUser: any = null; // Storing reference to delete on failure
 
     try {
       // Check if the user already exists
-      const existingUser = await User.findOne({ $or: [{ email }, { mobile }, { schoolName }] });
+      const existingUser = await User.findOne({ $or: [{ email }, { mobile }] });
 
       if (existingUser) {
         const conflictMessage =
-          existingUser.email === email && existingUser.mobile === mobile && existingUser.schoolName === schoolName
-            ? "User already exists with this email, phone number and school"
+          existingUser.email === email && existingUser.mobile === mobile
+            ? "User already exists with this email and phone number."
             : existingUser.email === email
             ? "User already exists with this email."
-            :  existingUser.schoolName === schoolName 
-            ? "User already exists with this school"
             : "User already exists with this phone number.";
 
         res.status(409).json({ error: conflictMessage, status: false });
@@ -82,7 +66,7 @@ export const createUser = asyncHandler(
       // Create and assign role
       let role = await Role.findOne({ name: roleName });
       if (!role) {
-        role = new Role({ name: roleName, user: newUser.id, permissions: [permissions] });
+        role = new Role({ name: roleName, user: newUser.id, permissions: ["read"] });
         await role.save();
       }
 
@@ -91,13 +75,6 @@ export const createUser = asyncHandler(
       if (!faculty) {
         faculty = new Faculty({ name: facultyName, userId: newUser.id });
         await faculty.save();
-      }
-
-      // Create or Assign School
-      let school = await School.findOne({ name: schoolName });
-      if (!school) {
-        school = new School({ name: schoolName, userId: newUser.id, code: generateInitials(schoolName)});
-        await school.save();
       }
 
       // Create or Assign Department
@@ -112,9 +89,10 @@ export const createUser = asyncHandler(
         await department.save();
       }
 
-      // Assign role, and school  to user
+      // Assign role, department, and faculty to user
+      newUser.department = department.departmentId;
+      newUser.faculty = faculty.facultyId;
       newUser.role = role.roleId;
-      newUser.school = school.schoolId;
       await newUser.save();
 
       // Check if the user already has a wallet
@@ -130,20 +108,6 @@ export const createUser = asyncHandler(
 
         // Update User with Wallet ID
         await User.findOneAndUpdate({id: newUser.id}, { wallet: wallet.walletId });
-      }
-
-      // checking if user already has a storage space
-      const existingStorageSpace = await StorageSpace.findOne({ user: newUser.id });
-      if (!existingStorageSpace) {
-        const space = new StorageSpace({
-          user: newUser.id,
-          size: UserFileStorageSpace.PREMIUM_GB_20,
-          name: UserFileStorageSpaceName.PREMIUM
-        });
-        await space.save();
-
-        // Update User with storageSpace ID
-        await User.findOneAndUpdate({id: newUser.id}, { storage_space: space.storageSpaceId});
       }
 
       // Send the OTP email

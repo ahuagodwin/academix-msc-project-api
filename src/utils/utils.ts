@@ -46,3 +46,13 @@ export const monthNames = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
+
+
+
+  // Function to generate initials from departmentName
+export const generateInitials = (name: string): string => {
+  return name
+    .split(" ") // Split by spaces
+    .map(word => word[0]?.toUpperCase()) // Get first letter and capitalize
+    .join(""); // Join initials together
+}
