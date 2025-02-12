@@ -13,7 +13,8 @@ enum UserPermissions {
     LECTURER = "teacher",
     ADMIN = "admin",
     STUDENT = "student",
-    STAFF = "staff"
+    STAFF = "staff",
+    SUPER = "super admin"
   }
 
   export const updateUserRoleAndPermissions = async (req: Request, res: Response): Promise<void> => {
@@ -46,11 +47,18 @@ enum UserPermissions {
         }
       }
   
-      // Check if the user already has a role assigned
+      // Ensure role names are unique per user (not globally)
       let userRole = await Role.findOne({ user: user.id });
   
       if (!userRole) {
-        // If no role exists, create a new role
+        // Prevent duplicate role names globally
+        const existingRole = await Role.findOne({ name: role });
+        if (existingRole) {
+          res.status(400).json({ status: false, message: `Role "${role}" already exists` });
+          return;
+        }
+  
+        // Create a new role
         userRole = await Role.create({
           user: user.id,
           name: role,
@@ -77,4 +85,5 @@ enum UserPermissions {
       res.status(500).json({ status: false, message: "Internal server error" });
     }
   };
+  
   

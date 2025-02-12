@@ -3,6 +3,14 @@ import asyncHandler from "express-async-handler";
 import User from "../models/user.Model";
 import { Role } from "../models/roles.model";
 
+
+enum UserPermissions {
+  READ = "read",
+  WRITE = "write",
+  DELETE = "delete",
+  UPDATE = "update"
+}
+
 // Middleware to authorize users based on role and permissions
 export const accessControl = (allowedRoles: string[] = [], requiredPermissions: string[] = []) => {
   return asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -43,7 +51,7 @@ export const accessControl = (allowedRoles: string[] = [], requiredPermissions: 
     // Check if the user has the required permissions
     const hasPermission =
       requiredPermissions.length === 0 ||
-      requiredPermissions.every((perm) => userRole.permissions.includes(perm));
+      requiredPermissions.every((perm: string) => userRole.permissions.includes(perm as UserPermissions));
 
     if (!hasRole || !hasPermission) {
       res.status(403).json({

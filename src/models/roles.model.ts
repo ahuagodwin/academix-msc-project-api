@@ -1,4 +1,4 @@
-import mongoose, { Schema, Model } from 'mongoose';
+import mongoose, { Schema, Model, Document } from 'mongoose';
 
 enum UserRole {
     LECTURER = "teacher",
@@ -20,7 +20,7 @@ enum UserRole {
     user: string
     roleId: string;
     name: UserRole;
-    permissions: string[];
+    permissions: UserPermissions[];
 }
 
 // Define Role Schema
@@ -38,13 +38,11 @@ const roleSchema: Schema<IRole> = new Schema(
         type: String,
         ref: "User",
         required: true,
-        unique: true,
       },
     name: {
       type: String,
       enum: Object.values(UserRole),
       required: true,
-      unique: true,
       default: UserRole.STUDENT
     },
     permissions: {

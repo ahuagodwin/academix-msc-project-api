@@ -57,14 +57,6 @@ enum UserFaculty {
   CMS = "Applied and Natural Science"
 }
 
-// USER PERMISSIONS
-enum UserPermissions {
-  READ = "read",
-  WRITE = "write",
-  DELETE = "delete",
-  UPDATE = "update"
-}
-
 // USER STORAGE SPACE
 enum UserFileStorageSpace {
   BASIC_GB_10 = "10 GB",
@@ -75,7 +67,7 @@ enum UserFileStorageSpace {
 // USER ADMISSION TYPE 
 enum UserAdmissionType {
   REGULAR = "RG", // Regular
-  INTERNSHIP = "INT", // Interfaceship
+  INTERNSHIP = "INT", // Internship
   PART_TIME = "PT", // Part Time
   DISTANCE_LEARNING = "DL", // Distances Learning
   OTHER = "Other",
@@ -107,7 +99,6 @@ export interface IUser extends Document {
   role: string | IRole;
   department: string;
   faculty: string;
-  permissions: string[];
   matric_number: string;
   storage_space: string;
   admissionType: string;
@@ -220,11 +211,6 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       type: String,
       enum: Object.values(UserAdmissionType),
       default: UserAdmissionType.REGULAR
-    },
-    permissions: {
-      type: [String],
-      enum: Object.values(UserPermissions), 
-      default: [UserPermissions.READ],
     },
     storage_space: {
       type: String,
