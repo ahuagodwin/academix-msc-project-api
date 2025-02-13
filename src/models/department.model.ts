@@ -17,6 +17,7 @@ interface IDepartment extends Document {
     name: UserDepartment;
     code: string; // Initials for the department
     userId: string; // Reference to the user who is associated with the department
+    description: string
 }
 
 // Define the schema for Department
@@ -50,6 +51,10 @@ const departmentSchema: Schema<IDepartment> = new mongoose.Schema(
       unique: true,
       uppercase: true,
     },
+    description: {
+      type: String,
+      default: null,
+    }
   },
   { timestamps: true }
 );

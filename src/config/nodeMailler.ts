@@ -30,7 +30,7 @@ export const sendMail = async (data: MailData) => {
     try {
       // Send the email using Nodemailer
       const mailOption = await transporter.sendMail({
-        from: `ASAGBA PRINCEWILL <${process.env.MAIL_ID}>`,
+        from: `ACADEMIX <${process.env.MAIL_ID}>`,
         to,
         subject,
         text: message,

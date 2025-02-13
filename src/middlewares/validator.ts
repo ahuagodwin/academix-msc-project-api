@@ -20,9 +20,27 @@ export const signUpSchema = Joi.object({
   firstName: Joi.string().alphanum().min(3).max(30).required(),
   lastName: Joi.string().alphanum().min(3).max(30).required(),
   mobile: Joi.string().pattern(new RegExp("^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-s./0-9]*$")).required(),
-  facultyName:  Joi.string().min(3).max(30).required(),
-  departmentName:  Joi.string().min(3).max(30).required(),
+  schoolName:  Joi.string().min(3).max(50).required(),
 });
+
+export const signUpAdminUserSchema = Joi.object({
+  email: Joi.string()
+    .min(6)
+    .max(60)
+    .required()
+    .email({ minDomainSegments: 2, tlds: { allow: ["com"] } })
+    .pattern(emailRegex)
+    .messages({
+        "string.pattern.base": `email with plus sign is not allowed`,
+      }),        
+  firstName: Joi.string().alphanum().min(3).max(30).required(),
+  lastName: Joi.string().alphanum().min(3).max(30).required(),
+  mobile: Joi.string().pattern(new RegExp("^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-s./0-9]*$")).required(),
+  schoolName:  Joi.string().min(3).max(50).required(),
+  roleName: Joi.string().valid("super admin", "admin").required(),
+  permissions: Joi.array().items(Joi.string()).min(1).required(),
+});
+
 
 
 

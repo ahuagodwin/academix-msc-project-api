@@ -37,46 +37,24 @@ enum UserRole {
   HOD_ADMIN = "administrator", // for staff of the faculty
 }
 
-// USER DEPARTMENT
-enum UserDepartment {
-  COMPUTER_SCIENCE = "Computer Science",
-  ENGLISH = "English",
-  MATHS = "Mathematics",
-  SCIENCE = "Science",
-  SOCIAL_STUDIES = "Social Studies",
-}
-
-
-// USER FACULTY
-enum UserFaculty {
-  ICT = "Information and Communication Technology",
-  ARTS = "Arts",
-  SCIENCES = "Science",
-  LAW = "Law",
-  BUSINESS = "Business",
-  ENGINEERING = "Engineering",
-  HEALTH_AND_BEHAVIOR = "Health and Behavior",
-  CMS = "Applied and Natural Science"
-}
-
 // USER STORAGE SPACE
 enum UserFileStorageSpace {
-  BASIC_GB_4 = "4 GB",
-  STANDARD_GB_10 = "10 GB",
-  PREMIUM_GB_20 = "20 GB",
+  BASIC_GB_5000 = "5000 GB",
+  STANDARD_TB_1 = "1 TB",
+  PREMIUM_TB_100 = "100 TB",
 }
 
-// USER ADMISSION TYPE 
-enum UserAdmissionType {
-  REGULAR = "RG", // Regular
-  INTERNSHIP = "INT", // Internship
-  PART_TIME = "PT", // Part Time
-  DISTANCE_LEARNING = "DL", // Distances Learning
-  OTHER = "Other",
-  MBA = "MBA",
-  BACHELOR_DEGREE = "BSc",
-  MASTER = "MSc",
-  DOCTORATE = "PhD",
+enum UserSchool {
+  IAU = "Ignatius Ajuru University",
+  RSU = "Rivers State University",
+  UNIPORT = "University of Port Harcourt",
+}
+
+interface ISchool extends Document {
+  schoolId: string; // Unique identifier for the School
+  name: UserSchool;
+  userId: string; // Referencing to the user associated with the School
+  code: string // school abbreviation
 }
 
 // Define the interface for a User document
@@ -99,12 +77,8 @@ export interface IUser extends Document {
   isBlocked: boolean;
   refreshToken: string;
   role: string | IRole;
-  schoolName: string | null;
-  department: string
-  faculty: string;
+  schoolName: string | ISchool;
   storage_space: string;
-  matric_number: string;
-  admissionType: string;
   passwordChangedAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -137,29 +111,14 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       type: String, 
       required: true,
       unique: true,
+      lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Please use a valid email address."],
     },
     mobile: {
       type: String,
       required: true,
       unique: true,
-    },
-    admissionType: {
-      type: String,
-      enum: Object.values(UserAdmissionType),
-      default: UserAdmissionType.REGULAR
-    },
-    matric_number: {
-      type: String,
-      unique: true,
-      default: function (this: IUser) {
-        const departmentInitials = this.department
-          .split(" ")
-          .map(word => word[0])
-          .join("")
-          .toUpperCase();
-        return `IAUE/${new Date().getFullYear()}/${departmentInitials}/${this.admissionType}/${Math.floor(10000 + Math.random() * 9000)}`;
-      },
+      lowercase: true,
     },
     password: {
       type: String,
@@ -212,24 +171,13 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       type: String,
       ref: "School",
       required: true,
-    },
-    department: {
-      type: String,
-      ref: "Department",
-      required: true,
-      default: UserDepartment.COMPUTER_SCIENCE,
-    },
-    faculty: {
-      type: String,
-      ref: "Faculty",
-      required: true,
-      default: UserFaculty.ICT
+      default: UserSchool.IAU
     },
     storage_space: {
       type: String,
       ref: "StorageSpace",
       required: true,
-      default: UserFileStorageSpace.BASIC_GB_4
+      default: UserFileStorageSpace.BASIC_GB_5000
     },
     wallet: {
       type: String,

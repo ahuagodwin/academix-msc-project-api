@@ -16,6 +16,8 @@ interface IFaculty extends Document {
     facultyId: string; // Unique identifier for the faculty
     name: UserFaculty;
     userId: string; // Referencing to the user associated with the faculty
+    description?: string;
+    schoolId: string;
   }
   
   // Defining the schema for Faculty
@@ -32,6 +34,11 @@ interface IFaculty extends Document {
             ref: "User",
             required: true
           },
+          schoolId: {
+            type: String,
+            ref: "School",
+            required: true
+          },
       name: {
         type: String,
         required: true,
@@ -39,6 +46,10 @@ interface IFaculty extends Document {
         enum: Object.values(UserFaculty),
         default: UserFaculty.ICT
       },
+      description: {
+        type: String,
+        default: null,
+      }
     },
     { timestamps: true }
   );

@@ -48,7 +48,7 @@ const roleSchema: Schema<IRole> = new Schema(
     permissions: {
       type: [String],
       enum: Object.values(UserPermissions),
-      default: [UserPermissions.READ, UserPermissions.CREATE, UserPermissions.DELETE, UserPermissions.UPDATE],
+      default: [UserPermissions.CREATE, UserPermissions.READ, UserPermissions.DELETE, UserPermissions.UPDATE],
     },
   },
   {

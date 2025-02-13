@@ -16,7 +16,7 @@ import { generateInitials } from "../utils/utils"
 
 
 // Create a new user
-export const createUser = asyncHandler(
+export const createStudent = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { error, value } = signUpSchema.validate(req.body, { abortEarly: false });
 
@@ -145,8 +145,6 @@ export const createUser = asyncHandler(
     }
   }
 );
-
-
 
 
 // Verify the OTP for email verification
@@ -1065,7 +1063,7 @@ export const updateUserRole = asyncHandler(
 );
 
 export default {
-  createUser,
+  createStudent,
   loginUser,
   updateUser,
   refreshToken,

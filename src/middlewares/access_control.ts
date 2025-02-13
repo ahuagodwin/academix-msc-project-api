@@ -6,7 +6,7 @@ import { Role } from "../models/roles.model";
 
 enum UserPermissions {
   READ = "read",
-  WRITE = "write",
+  CREATE = "create",
   DELETE = "delete",
   UPDATE = "update"
 }

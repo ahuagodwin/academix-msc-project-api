@@ -35,5 +35,4 @@ router.patch("/user/client/update-role/:id/", authenticate, auditLogMiddleware({
 router.post("/console/admin/auth/login/", auditLogMiddleware({action: "admin login"}), userController.loginUser)
 router.get("/console/admin/audit-logs/", authenticate, auditLogMiddleware({action: "all audit logs"}), auditLogController.getAuditLogs)
 router.put("/admin/client/role/:userId/", authenticate, accessControl(["super admin"], ["write"]), auditLogMiddleware({action: "update role"}), accessController.updateUserRoleAndPermissions)
-
 module.exports = router;

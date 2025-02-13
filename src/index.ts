@@ -8,7 +8,7 @@ import compression from 'compression';
 import dotEnv from "dotenv"
 import morgan from 'morgan'
 import { errorHandler, notFound } from './middlewares/errorHandler';
-const { authRouters } = require('./routes')
+const { authRouters, facultyRouters, departmentRouters, managementRouters } = require('./routes')
 const connect = require("./config/connect")
 import helmet from 'helmet';
 
@@ -36,9 +36,16 @@ app.use(morgan('dev'));
 const server = http.createServer(app)
 
 // Routes
-app.use('/api/v1', authRouters)
+app.use('/api/v1', authRouters);
+app.use('/api/v1', facultyRouters);
+app.use('/api/v1', departmentRouters);
+app.use('/api/v1',  managementRouters);
+
+// Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
+
+// Start the server
 server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 })

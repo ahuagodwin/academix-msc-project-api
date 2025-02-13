@@ -12,6 +12,7 @@ interface ITransaction {
   userId: string;
   balance: number;
   currency: string;
+  userType: "User" | "Management";
   transactions: ITransaction[];
   deposit(amount: number, description?: string): Promise<void>;
   withdraw(amount: number, description?: string): Promise<boolean>;
@@ -24,13 +25,20 @@ const walletSchema: Schema<IWallet> = new mongoose.Schema(
       type: String,
       unique: true,
       required: true,
-      default: () => new mongoose.Types.ObjectId().toString(),
+      default: function (this: any) {
+              return this?._id.toString()
+            },
     },
     userId: {
       type: String,
-      ref: "User",
+      refPath: "userType",
       required: true,
       unique: true,
+    },
+    userType: {
+      type: String,
+      required: true,
+      enum: ["User", "Management"], // Define the possible referenced models
     },
     balance: {
       type: Number,

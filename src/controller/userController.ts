@@ -4,29 +4,43 @@ import crypto from "crypto";
 import { Request, Response } from "express";
 import User from "../models/user.Model";
 import asyncHandler from "express-async-handler";
-import { loginSchema, signUpSchema } from "../middlewares/validator";
+import { loginSchema, signUpAdminUserSchema, signUpSchema } from "../middlewares/validator";
 import { generateRefreshToken, generateToken } from "../config/token";
 import { validateMongoDbId } from "../config/validateMongoId";
 import { generateOTP, sendMail } from "../config/nodeMailler";
 import Wallet from "../models/wallet.model";
 import { Role } from "../models/roles.model";
-import { Department } from "../models/department.model"
-import { Faculty } from "../models/faculty.model"
-import { generateInitials } from "../utils/utils"
+import { generateInitials, generateRandomPassword } from "../utils/utils"
 import { School } from "../models/school.model";
 import { StorageSpace } from "../models/storage_space.model";
 
 
 enum UserFileStorageSpace {
-  BASIC_GB_4 = "4 GB",
-  STANDARD_GB_10 = "10 GB",
-  PREMIUM_GB_20 = "20 GB",
+  BASIC_GB_5000 = "5000 GB",
+  STANDARD_TB_1 = "1 TB",
+  PREMIUM_TB_100 = "100 TB",
 }
 
 enum UserFileStorageSpaceName {
   BASIC = "Basic",
   STANDARD = "Standard",
   PREMIUM = "Premium",
+}
+
+enum UserPermissions {
+  CREATE = "create",
+  READ = "read",
+  UPDATE = "update",
+  DELETE = "delete",
+}
+
+enum UserRole {
+  LECTURER = "teacher", // teachers
+  STUDENT = "student", // students
+  SUPER_ADMIN = "super admin", // for dean, vc, and faculty officer
+  ADMIN = "admin", // for staff of the faculty, dean and vc
+  HOD = "head of department", //head of a department
+  HOD_ADMIN = "administrator", // for staff of the faculty
 }
 
 // Create a new user
@@ -40,7 +54,7 @@ export const createUser = asyncHandler(
       return;
     }
 
-    const { email, mobile, firstName, lastName, password, roleName, schoolName, permissions, departmentName, facultyName } = value;
+    const { email, mobile, firstName, lastName, password, roleName, schoolName } = value;
 
     let newUser: any = null; // Storing reference to delete on failure
 
@@ -82,15 +96,8 @@ export const createUser = asyncHandler(
       // Create and assign role
       let role = await Role.findOne({ name: roleName });
       if (!role) {
-        role = new Role({ name: roleName, user: newUser.id, permissions: [permissions] });
+        role = new Role({ name: roleName, user: newUser.id, permissions: [UserPermissions.CREATE, UserPermissions.READ, UserPermissions.UPDATE, UserPermissions.DELETE] });
         await role.save();
-      }
-
-      // Create or Assign Faculty
-      let faculty = await Faculty.findOne({ name: facultyName });
-      if (!faculty) {
-        faculty = new Faculty({ name: facultyName, userId: newUser.id });
-        await faculty.save();
       }
 
       // Create or Assign School
@@ -99,32 +106,21 @@ export const createUser = asyncHandler(
         school = new School({ name: schoolName, userId: newUser.id, code: generateInitials(schoolName)});
         await school.save();
       }
-
-      // Create or Assign Department
-      let department = await Department.findOne({ name: departmentName });
-      if (!department) {
-        department = new Department({
-          name: departmentName,
-          facultyId: faculty.facultyId,
-          code: generateInitials(departmentName),
-          userId: newUser.id,
-        });
-        await department.save();
-      }
-
+      
       // Assign role, and school  to user
       newUser.role = role.roleId;
-      newUser.school = school.schoolId;
+      newUser.schoolName = school.schoolId;
       await newUser.save();
 
       // Check if the user already has a wallet
-      const existingWallet = await Wallet.findOne({ user: newUser.id });
+      const existingWallet = await Wallet.findOne({ userId: newUser.id });
 
       if (!existingWallet) {
         const wallet = new Wallet({
           userId: newUser.id,
           balance: 0,
           currency: "NGN",
+          userType: "User"
         });
         await wallet.save();
 
@@ -137,8 +133,8 @@ export const createUser = asyncHandler(
       if (!existingStorageSpace) {
         const space = new StorageSpace({
           user: newUser.id,
-          size: UserFileStorageSpace.PREMIUM_GB_20,
-          name: UserFileStorageSpaceName.PREMIUM
+          size: UserFileStorageSpace.BASIC_GB_5000,
+          name: UserFileStorageSpaceName.BASIC
         });
         await space.save();
 
@@ -181,9 +177,6 @@ export const createUser = asyncHandler(
     }
   }
 );
-
-
-
 
 // Verify the OTP for email verification
 export const verifyAccountCreation = asyncHandler(
@@ -1099,6 +1092,8 @@ export const updateUserRole = asyncHandler(
     }
   }
 );
+
+
 
 export default {
   createUser,

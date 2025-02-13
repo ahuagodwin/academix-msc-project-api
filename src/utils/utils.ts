@@ -56,3 +56,9 @@ export const generateInitials = (name: string): string => {
     .map(word => word[0]?.toUpperCase()) // Get first letter and capitalize
     .join(""); // Join initials together
 }
+
+
+// Function to generate a random password
+export const generateRandomPassword = (length = 10) => {
+  return crypto.randomBytes(length).toString("hex").slice(0, length);
+};
