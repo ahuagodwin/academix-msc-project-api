@@ -1,0 +1,39 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [
+        {
+            "name": "custom-dictionary",
+            "path": "./.cspell/custom-dictionary.txt",
+            "addWords": true
+        }
+    ],
+    "dictionaries": [
+        "custom-dictionary"
+    ],
+    "words": [
+        "ajkey",
+        "ARCJET",
+        "EIGHTGB",
+        "EIGHTYGB",
+        "FIFTEENGB",
+        "FOURTYGB",
+        "Harcourt",
+        "SEVENTYGB",
+        "SIXTYGB",
+        "SUPERADMIN",
+        "THIRTEENGB",
+        "THIRTYGB",
+        "TWENTYFIVEGB",
+        "TWENTYGB"
+    ],
+    "ignoreWords": [
+        "Ajuru",
+        "IAUE",
+        "UNIPORT",
+        "academix",
+        "godwincahua",
+        "maxlength"
+    ],
+    "import": []
+}
