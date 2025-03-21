@@ -1,0 +1,8 @@
+# Custom Dictionary Words
+alphanum
+excelx
+flutterwave
+FLWSECK
+FORTYGB
+fundwallet
+UNILAG
