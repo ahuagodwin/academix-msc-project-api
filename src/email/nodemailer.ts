@@ -3,7 +3,7 @@
 
 
 import { SMTP_MAIL_ID, SMTP_MAIL_PASSWORD } from "../config/env";
-import { MailData } from "@/types/types";
+import { MailData } from "../types/types";
 import nodemailer from "nodemailer";
 // import sgMail from "@sendgrid/mail";
 

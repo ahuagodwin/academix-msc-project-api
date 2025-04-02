@@ -1,6 +1,6 @@
 
 
-import { IRole } from "@/types/types"
+import { IRole } from "../types/types"
 import mongoose, { Schema, Model, Types } from "mongoose";
 
 const RoleSchema: Schema<IRole> = new Schema({

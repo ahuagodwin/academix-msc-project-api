@@ -1,4 +1,4 @@
-import { User } from "@/models/user.model";
+import { User } from "../models/user.model";
 import { InflowAmount } from "../models/inflow.model";
 import { Response } from "express";
 import { AuthenticatedRequest, IRole } from "../types/types";

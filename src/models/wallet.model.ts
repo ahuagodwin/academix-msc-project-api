@@ -1,4 +1,4 @@
-import { IWallet } from "@/types/types";
+import { IWallet } from "../types/types";
 import mongoose, { Schema, Model, Document } from "mongoose";
 
 // Define Transaction Schema
