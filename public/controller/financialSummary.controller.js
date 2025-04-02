@@ -4,8 +4,8 @@ exports.getOutflowSummary = exports.getFinancialSummary = void 0;
 const financialSummary_model_1 = require("../models/financialSummary.model");
 const user_model_1 = require("../models/user.model");
 const isSystemOwner_1 = require("../middlewares/isSystemOwner");
-const outflow_model_1 = require("@/models/outflow.model");
 const Helpers_1 = require("../helpers/Helpers");
+const outflow_model_1 = require("../models/outflow.model");
 const getFinancialSummary = async (req, res) => {
     try {
         const userId = req.user?._id;
