@@ -10,7 +10,7 @@
     "allowSyntheticDefaultImports": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "outDir": "./dist",
+    "outDir": "./public",
     "rootDir": "./src",
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types", "./src/types"],
