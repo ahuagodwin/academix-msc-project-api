@@ -4,7 +4,7 @@ import { Response } from "express";
 import { AuthenticatedRequest, IRole } from "../types/types";
 import { User } from "../models/user.model";
 import { isSystemOwner } from "../middlewares/isSystemOwner";
-import { OutflowAmount } from "@/models/outflow.model";
+import { OutflowAmount } from "../models/outflow.model";
 import { buildQuery, paginate, paginateResults } from "../helpers/Helpers";
 
 export const getFinancialSummary = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
