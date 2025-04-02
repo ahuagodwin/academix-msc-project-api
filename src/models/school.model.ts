@@ -35,13 +35,16 @@ schoolSchema.pre("save", function (this: Document & ISchool, next) {
 });
 
 schoolSchema.pre("validate", function (next) {
-  this.faculties.forEach(faculty => {
-    if (!faculty.facultyId) {
-      faculty.facultyId = new Types.ObjectId;
-    }
-  });
+  if (this.faculties) {
+    this.faculties.forEach(faculty => {
+      if (!faculty.facultyId) {
+        faculty.facultyId = new Types.ObjectId;
+      }
+    });
+  }
   next();
 });
+
 
 
 const School: Model<any> = model("School", schoolSchema);

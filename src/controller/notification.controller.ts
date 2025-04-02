@@ -144,6 +144,7 @@ export const forwardNotification = async (req: AuthenticatedRequest, res: Respon
       userId: recipientId,
       subject: "New Forwarded Notification",
       message: `You have received a forwarded notification: <br><b>${notification.message}</b>`,
+      type: "general"
     });
 
     res.status(200).json({ success: true, message: "Notification forwarded successfully", data: forwardedNotification });
