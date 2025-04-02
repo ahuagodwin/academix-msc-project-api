@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllInflowAmounts = void 0;
-const user_model_1 = require("@/models/user.model");
+const user_model_1 = require("../models/user.model");
 const inflow_model_1 = require("../models/inflow.model");
 const isSystemOwner_1 = require("../middlewares/isSystemOwner");
 const getAllInflowAmounts = async (req, res) => {
