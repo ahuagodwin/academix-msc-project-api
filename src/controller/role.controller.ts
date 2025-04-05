@@ -455,3 +455,66 @@ export const updateAssignedRolesToUser = async (
         });
     }
 };
+
+
+
+/**
+ * @desc Get all users that have been assigned any roles
+ * @access Private
+ */
+export const getAllUsersWithRoles = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.user?._id;
+
+    try {
+        // Check if the user is authenticated and is a system owner
+        if (!userId || !(await isSystemOwner(userId))) {
+            res.status(401).json({ error: "Unauthorized access", status: false });
+            return 
+        }
+
+        // Fetch the requesting user and their roles
+        const requestingUser = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
+        if (!requestingUser) {
+            res.status(404).json({ error: "Requesting user not found", status: false });
+            return
+        }
+
+        // Check if the requesting user has "read_assigned_role" permission
+        const hasPermission = requestingUser.roles.some((role) => role.permissions.includes("read_role"));
+        if (!hasPermission) {
+            res.status(403).json({ error: "You're not permitted to view users with assigned roles", status: false });
+            return
+        }
+
+        // Fetch all users with their assigned roles
+        const users = await User.find({ roles: { $exists: true, $not: { $size: 0 } } })
+            .populate<{ roles: IRole[] }>("roles");
+
+        if (users.length === 0) {
+            res.status(404).json({ error: "No users with assigned roles found", status: false });
+            return
+        }
+
+        // Return the users along with their roles
+        res.status(200).json({
+            message: "Users with assigned roles fetched successfully",
+            users: users.map(user => ({
+                userId: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email, 
+                phoneNumber: user.phoneNumber,
+                user_type: user.user_type,
+                roles: user.roles.map(role => ({
+                    roleId: role._id,
+                    roleName: role.name,
+                    description: role.description
+                }))
+            })),
+            status: true
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error", status: false });
+    }
+};

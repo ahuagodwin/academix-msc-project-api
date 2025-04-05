@@ -8,7 +8,7 @@ import { generateOTP, generateRefreshToken, generateToken, permissions } from ".
 import { sendMail } from "../email/nodemailer";
 import Role from "../models/role.model";
 import { loginSchema } from "../schema/Schema";
-import { ISchool, UserType } from "../types/types";
+import { AuthenticatedRequest, IRole, ISchool, UserType } from "../types/types";
 
 export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const session = await mongoose.startSession();
@@ -422,4 +422,72 @@ export const verifyLoginOTP = asyncHandler(
   }
 );
 
+
+export const getUserById = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const userId = req.user?._id;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized access" });
+        return;
+      }
+
+      // Fetch the user and populate roles
+      const user = await User.findById(userId)
+        .populate<{ roles: IRole[] }>("roles")
+        .session(session);
+
+      if (!user) {
+        await session.abortTransaction();
+        res.status(404).json({ error: "User not found", status: false });
+        return;
+      }
+
+      // Check if the user has the "read_profile" permission in any of their roles
+      const hasPermission = user.roles.some((role) =>
+        role.permissions.includes("read_profile")
+      );
+
+      if (!hasPermission) {
+        await session.abortTransaction();
+        res.status(403).json({
+          error: "You're not permitted to read the profile",
+          status: false,
+        });
+        return;
+      }
+
+      // If permission check passes, return the user's profile or desired data
+      res.status(200).json({
+        success: true,
+        message: "Profile access granted.",
+        user: {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            user_type: user.user_type,
+            roles: user.roles.map(role => ({
+              roleId: role._id,
+              roleName: role.name,
+              description: role.description
+          }))
+        },
+      })
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      next(error); // Pass error to the global error handler
+    }
+  }
+);
   
