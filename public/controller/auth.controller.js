@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyLoginOTP = exports.loginUser = exports.verifyAccountCreation = exports.register = void 0;
+exports.getUserById = exports.verifyLoginOTP = exports.loginUser = exports.verifyAccountCreation = exports.register = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = require("../models/user.model");
@@ -355,4 +355,60 @@ exports.verifyLoginOTP = (0, express_async_handler_1.default)(async (req, res) =
         user: userWithoutSensitiveData,
         accessToken,
     });
+});
+exports.getUserById = (0, express_async_handler_1.default)(async (req, res, next) => {
+    const session = await mongoose_1.default.startSession();
+    session.startTransaction();
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized access" });
+            return;
+        }
+        // Fetch the user and populate roles
+        const user = await user_model_1.User.findById(userId)
+            .populate("roles")
+            .session(session);
+        if (!user) {
+            await session.abortTransaction();
+            res.status(404).json({ error: "User not found", status: false });
+            return;
+        }
+        // Check if the user has the "read_profile" permission in any of their roles
+        const hasPermission = user.roles.some((role) => role.permissions.includes("read_profile"));
+        if (!hasPermission) {
+            await session.abortTransaction();
+            res.status(403).json({
+                error: "You're not permitted to read the profile",
+                status: false,
+            });
+            return;
+        }
+        // If permission check passes, return the user's profile or desired data
+        res.status(200).json({
+            success: true,
+            message: "Profile access granted.",
+            user: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                user_type: user.user_type,
+                roles: user.roles.map(role => ({
+                    roleId: role._id,
+                    roleName: role.name,
+                    description: role.description
+                }))
+            },
+        });
+        // Commit transaction
+        await session.commitTransaction();
+        session.endSession();
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        next(error); // Pass error to the global error handler
+    }
 });

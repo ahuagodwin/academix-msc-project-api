@@ -27,7 +27,8 @@ export const {
   FIREBASE_STORAGE_BUCKET,
   NO_REPLY_EMAIL,
   ACADEMIX_FLW_WEB_HOOK_URL,
-  FLW_TRANSFER_API_URL
+  FLW_TRANSFER_API_URL,
+  BACKEND_URL_LIVE
 } = process.env;
 
 if (
@@ -55,7 +56,8 @@ if (
   !FIREBASE_STORAGE_BUCKET ||
   !NO_REPLY_EMAIL ||
   !ACADEMIX_FLW_WEB_HOOK_URL ||
-  !FLW_TRANSFER_API_URL
+  !FLW_TRANSFER_API_URL || 
+  !BACKEND_URL_LIVE
 ) {
   throw new Error("Missing environment variables");
 }

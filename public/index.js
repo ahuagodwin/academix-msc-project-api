@@ -19,8 +19,10 @@ const app = (0, express_1.default)();
 // Middleware setup
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
-    origin: [`${env_1.FRONTEND_URL_LOCAL}`, `${env_1.FRONTEND_URL_LIVE}`, `${env_1.BACKEND_URL_LOCAL}`, `${process.env.BACKEND_URL_LIVE}`,],
+    origin: [`${env_1.FRONTEND_URL_LOCAL}`, `${env_1.FRONTEND_URL_LIVE}`, `${env_1.BACKEND_URL_LOCAL}`, `${env_1.BACKEND_URL_LIVE}`,],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 app.use(body_parser_1.default.json());
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: "50mb" }));

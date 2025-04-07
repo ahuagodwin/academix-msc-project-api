@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authRouter = void 0;
+const authorized_md_1 = require("../middlewares/authorized.md");
 const authService = __importStar(require("../controller/auth.controller"));
 const express_1 = require("express");
 const authRouter = (0, express_1.Router)();
@@ -43,3 +44,4 @@ authRouter.post("/register", authService.register);
 authRouter.post("/account/verify", authService.verifyAccountCreation);
 authRouter.post("/login", authService.loginUser);
 authRouter.post("/login/verify/", authService.verifyLoginOTP);
+authRouter.get("/user/profile/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_profile"), authService.getUserById);

@@ -43,7 +43,7 @@ export const fundWallet = async (req: AuthenticatedRequest, res: Response): Prom
         tx_ref: transactionReference,
         amount,
         currency: currency || "NGN", 
-        redirect_url: `${FRONTEND_URL_LOCAL}/wallet/success`, // Adjust based on frontend
+        redirect_url: `${FRONTEND_URL_LOCAL}/wallet/success`, 
         customer: {
           email: user.email,
           name: user.firstName + " " + user.lastName,
@@ -83,7 +83,7 @@ export const fundWallet = async (req: AuthenticatedRequest, res: Response): Prom
     res.status(200).json({
       success: true,
       message: "Payment initiated successfully",
-      paymentLink: response.data.data.link, // Redirect the user here
+      paymentLink: response.data.data.link,
     });
   } catch (error) {
     await session.abortTransaction();

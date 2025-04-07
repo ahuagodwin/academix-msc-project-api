@@ -8,7 +8,7 @@ import { generateOTP, generateRefreshToken, generateToken, permissions } from ".
 import { sendMail } from "../email/nodemailer";
 import Role from "../models/role.model";
 import { loginSchema } from "../schema/Schema";
-import { ISchool, UserType } from "../types/types";
+import { AuthenticatedRequest, IRole, ISchool, UserType } from "../types/types";
 
 export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const session = await mongoose.startSession();
@@ -419,6 +419,149 @@ export const verifyLoginOTP = asyncHandler(
       user: userWithoutSensitiveData,
       accessToken,
     });
+  }
+);
+
+
+export const getUserById = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const userId = req.user?._id;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized access" });
+        return;
+      }
+
+      // Fetch the user and populate roles
+      const user = await User.findById(userId)
+        .populate<{ roles: IRole[] }>("roles")
+        .populate("school", "name")
+        .populate("wallet", "balance")
+        .populate("storage_spaces", "size")
+        .session(session);
+
+      if (!user) {
+        await session.abortTransaction();
+        res.status(404).json({ error: "User not found", status: false });
+        return;
+      }
+
+      // Check if the user has the "read_profile" permission in any of their roles
+      const hasPermission = user.roles.some((role) =>
+        role.permissions.includes("read_profile")
+      );
+
+      if (!hasPermission) {
+        await session.abortTransaction();
+        res.status(403).json({
+          error: "You're not permitted to read the profile",
+          status: false,
+        });
+        return;
+      }
+
+      // If permission check passes, return the user's profile or desired data
+      res.status(200).json({
+        success: true,
+        message: "Profile access granted.",
+        user: {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            user_type: user.user_type,
+            roles: user.roles.map(role => ({
+              roleId: role._id,
+              roleName: role.name,
+              description: role.description
+            })),
+            school: user.school || null,
+            wallet: user.wallet || null,
+            storage_spaces: user.storage_spaces || []
+        },
+      })
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      next(error); // Pass error to the global error handler
+    }
+  }
+);
+  
+
+
+export const getAllUsers = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const userId = req.user?._id;
+
+      if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized access" });
+        return;
+      }
+
+      // Fetch the current user with their roles
+      const currentUser = await User.findById(userId)
+        .populate<{ roles: IRole[] }>("roles")
+        .session(session);
+
+      if (!currentUser) {
+        await session.abortTransaction();
+        res.status(404).json({ error: "User not found", status: false });
+        return;
+      }
+
+      // Check if any of the user's roles has the "read_users" permission
+      const hasPermission = currentUser.roles.some((role) =>
+        role.permissions.includes("read_users")
+      );
+
+      if (!hasPermission) {
+        await session.abortTransaction();
+        res.status(403).json({
+          error: "You're not permitted to view all users",
+          status: false,
+        });
+        return;
+      }
+
+      // Fetch all users
+      const users = await User.find()
+        .populate("roles", "name description")
+        .populate("school", "name")
+        .populate("wallet", "balance currency")
+        .populate("storage_spaces", "size")
+        .select("-password -emailVerificationCode -emailVerificationCodeValidation -refreshToken -passwordChangedAt -_v")
+        .session(session);
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({
+        success: true,
+        message: "Users retrieved successfully.",
+        count: users.length,
+        data: users,
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      next(error);
+    }
   }
 );
 
