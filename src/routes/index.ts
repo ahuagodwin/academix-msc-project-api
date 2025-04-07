@@ -12,6 +12,7 @@ import { storageRouter } from "./storage.routes";
 import { studentRouter } from "./student.routes";
 import { subscriptionRouter } from "./subscription.routes";
 import { teacherRouter } from "./teacher.routes";
+import { userRouter } from "./user.routes";
 
 
 export const Routes = {
@@ -28,5 +29,6 @@ export const Routes = {
     groupRouter,
     notificationRouter,
     payoutRouter,
-    financialSummaryRouter
+    financialSummaryRouter,
+    userRouter
 }
