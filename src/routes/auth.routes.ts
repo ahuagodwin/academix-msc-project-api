@@ -12,6 +12,6 @@ authRouter.post("/account/verify", authService.verifyAccountCreation);
 authRouter.post("/login", authService.loginUser);
 authRouter.post("/login/verify/", authService.verifyLoginOTP);
 authRouter.get("/user/profile/", authProtect, authorize("read_profile"), authService.getUserById);
-authRouter.get("/all/users/", authProtect, authorize("read_users"), authService.getAllUsers)
+authRouter.get("/users/all/users/", authProtect, authorize("read_users"), authService.getAllUsers)
 
 export { authRouter };
