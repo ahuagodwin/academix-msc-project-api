@@ -132,13 +132,21 @@ export const paginate = (page: any, limit: any) => {
 export const buildQuery = (filters: any) => {
   const query: any = {};
 
-  // Iterate over the provided filters and add them to the query
   Object.keys(filters).forEach((key) => {
-    if (filters[key]) query[key] = filters[key];
+    const value = filters[key];
+    if (value) {
+      // If the value is a string, apply regex for partial match
+      if (typeof value === "string") {
+        query[key] = { $regex: value, $options: "i" };
+      } else {
+        query[key] = value;
+      }
+    }
   });
 
   return query;
 };
+
 
 
 // for pagination control 

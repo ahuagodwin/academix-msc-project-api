@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { IRole, AuthenticatedRequest, ISchool, SchoolWithNested } from "../types/types"; // Ensure this is correctly defined
 import { User } from "../models/user.model";
 import School from "../models/school.model";
-import { generateInitials } from "../helpers/Helpers";
+import { buildQuery, generateInitials, paginate, paginateResults } from "../helpers/Helpers";
 import { isSystemOwner } from "../middlewares/isSystemOwner";
 
 
@@ -309,7 +309,20 @@ export const getAllSchools = async (
         return;
       }
   
-      const schools = await School.find().select("-__v");
+       // extracting query parameters
+    const { page, limit, ...filters } = req.query;
+
+    // applying pagination and filters
+    const { pageNumber, limitNumber, skip } = paginate(page, limit);
+    const query = buildQuery(filters);
+
+    const totalRecords = await School.countDocuments(query);
+
+    const schools = await School.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber)
+      .select("-__v");
   
       if (!schools || schools.length === 0) {
         res.status(404).json({ error: "No schools found", status: false });
@@ -344,6 +357,7 @@ export const getAllSchools = async (
       res.status(200).json({
         message: "Schools retrieved successfully",
         schools: enrichedSchools,
+        pagination: paginateResults(totalRecords, pageNumber, limitNumber),
         status: true,
       });
     } catch (error) {
@@ -1642,6 +1656,7 @@ export const schoolAnalytics = async (req: AuthenticatedRequest, res: Response):
        // Count verified and active users
     const totalApprovedUsers = users.filter((user) => user.verified === true).length;
     const totalActiveUsers = users.filter((user) => user.emailVerified === true).length;
+    const totalLoggedUsers = users.filter((user) => user.emailVerified === false).length;
   
       res.status(200).json({
         message: "School analytics retrieved successfully",
@@ -1654,6 +1669,7 @@ export const schoolAnalytics = async (req: AuthenticatedRequest, res: Response):
           totalCourses,
           totalApprovedUsers,
           totalActiveUsers,
+          totalLoggedUsers,
           breakdown: schoolBreakdown,
         },
       });
