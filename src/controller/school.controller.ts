@@ -314,7 +314,7 @@ export const getAllSchools = async (
 
     // applying pagination and filters
     const { pageNumber, limitNumber, skip } = paginate(page, limit);
-    const query = buildQuery(filters);
+    const query = buildQuery(filters, ["name", "code"]);
 
     const totalRecords = await School.countDocuments(query);
 

@@ -128,24 +128,69 @@ export const paginate = (page: any, limit: any) => {
 };
 
 
-// for search or filter query
-export const buildQuery = (filters: any) => {
+// for search or filter query 
+// TODO: This is fall back buildQuery in case of error with the updated  buildQuery
+// export const buildQuery = (filters: any) => {
+//   const query: any = {};
+
+//   Object.keys(filters).forEach((key) => {
+//     const value = filters[key];
+//     if (value) {
+//       // If the value is a string, apply regex for partial match
+//       if (typeof value === "string") {
+//         query[key] = { $regex: value, $options: "i" };
+//       } else {
+//         query[key] = value;
+//       }
+//     }
+//   });
+
+//   return query;
+// };
+
+export const buildQuery = (filters: any, searchableFields: string[] = []) => {
   const query: any = {};
 
+  if (filters.search && searchableFields.length > 0) {
+    const searchRegex = { $regex: filters.search, $options: "i" };
+    query.$or = searchableFields.map((field) => ({
+      [field]: searchRegex,
+    }));
+  }
+
+  // Handle other filters (excluding "search")
   Object.keys(filters).forEach((key) => {
-    const value = filters[key];
-    if (value) {
-      // If the value is a string, apply regex for partial match
-      if (typeof value === "string") {
-        query[key] = { $regex: value, $options: "i" };
-      } else {
-        query[key] = value;
-      }
+    if (key !== "search" && filters[key]) {
+      query[key] = { $regex: filters[key], $options: "i" };
     }
   });
 
   return query;
 };
+
+
+// export const buildQuery = (filters: any, searchableFields: string[] = []) => {
+//   const query: any = {};
+//   const { search, ...restFilters } = filters;
+
+//   // Apply direct filters
+//   Object.keys(restFilters).forEach((key) => {
+//     if (restFilters[key]) {
+//       query[key] = { $regex: restFilters[key], $options: "i" };
+//     }
+//   });
+
+//   // Apply search across all searchable fields
+//   if (search && searchableFields.length > 0) {
+//     const searchRegex = new RegExp(search, "i");
+//     query.$or = searchableFields.map((field) => ({
+//       [field]: searchRegex,
+//     }));
+//   }
+
+//   return query;
+// };
+
 
 
 
