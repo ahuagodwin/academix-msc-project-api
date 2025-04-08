@@ -1,7 +1,7 @@
 
 import { Response } from "express";
-import mongoose, { Types } from "mongoose";
-import { IRole, AuthenticatedRequest, ISchool } from "../types/types"; // Ensure this is correctly defined
+import mongoose from "mongoose";
+import { IRole, AuthenticatedRequest, ISchool, SchoolWithNested } from "../types/types"; // Ensure this is correctly defined
 import { User } from "../models/user.model";
 import School from "../models/school.model";
 import { generateInitials } from "../helpers/Helpers";
@@ -274,53 +274,83 @@ export const deleteSchool = async (req: AuthenticatedRequest, res: Response): Pr
 };
 
 // get all schools
-export const getAllSchools = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const getAllSchools = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
-        const userId = req.user?._id;
-
-        if (!userId) {
-            res.status(401).json({ error: "Unauthorized access", status: false });
-            return;
-        }
-
-          // Check if the user is a system owner
-          if (!isSystemOwner(userId)) {
-            res.status(403).json({ error: "Only system owners can view schools", status: false });
-            return;
-        }
-
-        // Fetch user and populate roles
-        const user = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
-        if (!user) {
-            res.status(404).json({ error: "User not found", status: false });
-            return;
-        }
-
-        // Check if the user is a system owner or has read permission
-        const hasPermission = isSystemOwner(userId) || user.roles.some((role) => role.permissions.includes("read_school"));
-        if (!hasPermission) {
-            res.status(403).json({ error: "You're not permitted to view schools", status: false });
-            return;
-        }
-
-        // Fetch all schools
-        const schools = await School.find().select("-__v -_id");
-
-        if (!schools || schools.length === 0) {
-            res.status(404).json({ error: "No schools found", status: false });
-            return;
-        }
-
-        res.status(200).json({
-            message: "Schools retrieved successfully",
-            schools,
-            status: true,
-        });
+      const userId = req.user?._id;
+  
+      if (!userId) {
+        res.status(401).json({ error: "Unauthorized access", status: false });
+        return;
+      }
+  
+      if (!isSystemOwner(userId)) {
+        res
+          .status(403)
+          .json({ error: "Only system owners can view schools", status: false });
+        return;
+      }
+  
+      const user = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
+  
+      if (!user) {
+        res.status(404).json({ error: "User not found", status: false });
+        return;
+      }
+  
+      const hasPermission =
+        isSystemOwner(userId) ||
+        user.roles.some((role) => role.permissions.includes("read_school"));
+  
+      if (!hasPermission) {
+        res.status(403).json({ error: "You're not permitted to view schools", status: false });
+        return;
+      }
+  
+      const schools = await School.find().select("-__v");
+  
+      if (!schools || schools.length === 0) {
+        res.status(404).json({ error: "No schools found", status: false });
+        return;
+      }
+  
+      const enrichedSchools = await Promise.all(
+        (schools as SchoolWithNested[]).map(async (school) => {
+            const facultyCount = school.faculties.length;
+            let departmentCount = 0;
+            let courseCount = 0;
+        
+            school.faculties.forEach((faculty) => {
+              departmentCount += faculty.departments.length;
+              faculty.departments.forEach((dept) => {
+                courseCount += dept.courses.length;
+              });
+            });
+        
+            const userCount = await User.countDocuments({ schoolId: school.schoolId });
+  
+          return {
+            ...school.toObject(),
+            totalFaculties: facultyCount,
+            totalDepartments: departmentCount,
+            totalCourses: courseCount,
+            totalUsers: userCount,
+          };
+        })
+      );
+  
+      res.status(200).json({
+        message: "Schools retrieved successfully",
+        schools: enrichedSchools,
+        status: true,
+      });
     } catch (error) {
-        console.error("Error fetching schools:", error);
-        res.status(500).json({ error: "Internal server error", status: false });
+      console.error("Error fetching schools:", error);
+      res.status(500).json({ error: "Internal server error", status: false });
     }
-};
+  };
 
 // get school by school id
 export const getSchoolById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -369,8 +399,7 @@ export const createFaculty = async (req: AuthenticatedRequest, res: Response): P
     session.startTransaction();
 
     try {
-        const { schoolId } = req.params;
-        const { faculties } = req.body; 
+        const { faculties, schoolId } = req.body; // an array of faculties and school Id
         const userId = req.user?._id;
 
         if (!userId || !isSystemOwner(userId)) {
@@ -727,8 +756,7 @@ export const createDepartments = async (req: AuthenticatedRequest, res: Response
     session.startTransaction();
 
     try {
-        const { schoolId, facultyId } = req.params;
-        const { departments } = req.body; // Expecting an array of department names
+        const { departments, schoolId, facultyId } = req.body; // Expecting an array of department names, school id, and faculty id
         const userId = req.user?._id;
 
         if (!userId || !isSystemOwner(userId)) {
@@ -1117,8 +1145,7 @@ export const createCourses = async (req: AuthenticatedRequest, res: Response): P
     session.startTransaction();
 
     try {
-        const { schoolId, facultyId, departmentId } = req.params;
-        const { courses } = req.body;
+        const { courses, schoolId, facultyId, departmentId } = req.body;
         const userId = req.user?._id;
 
         if (!userId || !isSystemOwner(userId)) {
@@ -1545,4 +1572,94 @@ export const getCourseById = async (req: AuthenticatedRequest, res: Response): P
         res.status(500).json({ error: "Internal server error", status: false });
     }
 };
+
+
+
+
+// SCHOOL ANALYTICS
+export const schoolAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?._id;
+  
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        res.status(401).json({ error: "Unauthorized or invalid user ID", status: false });
+        return;
+      }
+
+    // Fetch user and populate roles
+    const user = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
+    if (!user) {
+        res.status(404).json({ error: "User not found", status: false });
+        return;
+    }
+
+    // Check if the user is a system owner
+    if (!isSystemOwner(userId)) {
+        res.status(403).json({ error: "Only system owners can access school analytics", status: false });
+        return;
+    }
+
+    // Check user permissions
+    const hasPermission = user.roles.some((role) => role.permissions.includes("read_school_analytics"));
+    if (!hasPermission) {
+        res.status(403).json({ error: "You do not have permission to access school analytics", status: false });
+        return;
+    }
+  
+      const schools = await School.find();
+      const users = await User.find();
+  
+      let totalFaculties = 0;
+      let totalDepartments = 0;
+      let totalCourses = 0;
+  
+      const schoolBreakdown = schools.map((school) => {
+        const facultyCount = school.faculties?.length || 0;
+        let departmentCount = 0;
+        let courseCount = 0;
+  
+        for (const faculty of school.faculties || []) {
+          departmentCount += faculty.departments?.length || 0;
+          for (const department of faculty.departments || []) {
+            courseCount += department.courses?.length || 0;
+          }
+        }
+  
+        totalFaculties += facultyCount;
+        totalDepartments += departmentCount;
+        totalCourses += courseCount;
+  
+        return {
+          schoolId: school.schoolId,
+          name: school.name,
+          code: school.code,
+          faculties: facultyCount,
+          departments: departmentCount,
+          courses: courseCount,
+        };
+      });
+
+       // Count verified and active users
+    const totalApprovedUsers = users.filter((user) => user.verified === true).length;
+    const totalActiveUsers = users.filter((user) => user.emailVerified === true).length;
+  
+      res.status(200).json({
+        message: "School analytics retrieved successfully",
+        status: true,
+        data: {
+          totalSchools: schools.length,
+          totalUsers: users.length,
+          totalFaculties,
+          totalDepartments,
+          totalCourses,
+          totalApprovedUsers,
+          totalActiveUsers,
+          breakdown: schoolBreakdown,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching school analytics:", error);
+      res.status(500).json({ error: "Internal server error", status: false });
+    }
+  };
 

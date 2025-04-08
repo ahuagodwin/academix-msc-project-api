@@ -386,10 +386,7 @@ export const assignRolesToUser = async (req: AuthenticatedRequest, res: Response
  * @desc Update Assign role to User by user ID and roleIds (Only users with "create" permission)
  * @access Private
  */
-export const updateAssignedRolesToUser = async (
-    req: AuthenticatedRequest,
-    res: Response
-): Promise<void> => {
+export const updateAssignedRolesToUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -397,43 +394,70 @@ export const updateAssignedRolesToUser = async (
         const { userId, roleIds } = req.body;
         const requestingUserId = req.user?._id;
 
+        // Authentication & system owner check
         if (!requestingUserId || !isSystemOwner(requestingUserId)) {
-            throw { status: 401, message: "Unauthorized access" };
+            await session.abortTransaction();
+            session.endSession();
+            res.status(401).json({ error: "Unauthorized access", status: false });
+            return;
         }
 
+        // Validate input
         if (!userId || !roleIds || !Array.isArray(roleIds)) {
-            throw { status: 400, message: "Invalid input. Provide userId and an array of roleIds." };
+            await session.abortTransaction();
+            session.endSession();
+            res.status(400).json({ error: "Invalid input. Provide userId and an array of roleIds.", status: false });
+            return;
         }
 
-        // Validate userId
-        if (!Types.ObjectId.isValid(userId)) {
-            throw { status: 400, message: "Invalid userId format." };
-        }
+        // Validate and convert Role IDs to ObjectIds
+        const validRoleIds = roleIds.filter((id) => mongoose.isValidObjectId(id)).map((id) => new Types.ObjectId(id));
 
-        // Validate roleIds
-        const validRoleIds = roleIds.filter((id: string) => Types.ObjectId.isValid(id));
-
+        // Ensure no invalid roleIds were provided
         if (validRoleIds.length !== roleIds.length) {
-            throw { status: 400, message: "One or more roleIds are invalid." };
+            await session.abortTransaction();
+            session.endSession();
+            res.status(400).json({ error: "One or more provided roleIds are invalid. Ensure they are valid ObjectIds.", status: false });
+            return;
         }
 
-        // Convert roleIds to ObjectIds
-        const roleObjectIds = validRoleIds.map((id: string) => new Types.ObjectId(id));
+        // Fetch requesting user & validate permissions
+        const requestingUser = await User.findById(requestingUserId).populate<{ roles: IRole[] }>("roles").session(session);
+        if (!requestingUser) {
+            await session.abortTransaction();
+            session.endSession();
+            res.status(404).json({ error: "Requesting user not found", status: false });
+            return;
+        }
+
+        const hasPermission = requestingUser.roles.some((role) => role.permissions?.includes("update_role"));
+        if (!hasPermission) {
+            await session.abortTransaction();
+            session.endSession();
+            res.status(403).json({ error: "You do not have permission to update roles", status: false });
+            return;
+        }
 
         // Fetch target user
         const targetUser = await User.findById(userId).session(session);
         if (!targetUser) {
-            throw { status: 404, message: "Target user not found" };
+            await session.abortTransaction();
+            session.endSession();
+            res.status(404).json({ error: "Target user not found", status: false });
+            return;
         }
 
-        // Fetch roles
-        const roles = await Role.find({ roleId: { $in: roleObjectIds } }).session(session);
-        if (roles.length !== roleObjectIds.length) {
-            throw { status: 404, message: "Some roles not found." };
+        // Fetch roles from DB using valid ObjectIds
+        const roles = await Role.find({ _id: { $in: validRoleIds } }).session(session);
+        if (roles.length !== validRoleIds.length) {
+            await session.abortTransaction();
+            session.endSession();
+            res.status(404).json({ error: "One or more roles not found", status: false });
+            return;
         }
 
-        // Assign roles to user
-        targetUser.roles = roleObjectIds;
+        // Update user roles (overwrite existing roles)
+        targetUser.roles = validRoleIds;
         await targetUser.save({ session });
 
         // Commit transaction
@@ -442,21 +466,20 @@ export const updateAssignedRolesToUser = async (
 
         res.status(200).json({
             message: "Roles updated successfully",
-            user: { userId: targetUser._id, roles: targetUser.roles },
-            status: true,
+            user: {
+                userId: targetUser._id,
+                roles: targetUser.roles
+            },
+            status: true
         });
-    } catch (error: any) {
+
+    } catch (error) {
+        console.error(error);
         await session.abortTransaction();
         session.endSession();
-
-        res.status(error.status || 500).json({
-            error: error.message || "Internal server error",
-            status: false,
-        });
+        res.status(500).json({ error: "Internal server error", status: false });
     }
 };
-
-
 
 /**
  * @desc Get all users that have been assigned any roles
@@ -518,3 +541,66 @@ export const getAllUsersWithRoles = async (req: AuthenticatedRequest, res: Respo
         res.status(500).json({ error: "Internal server error", status: false });
     }
 };
+
+
+/**
+ * @desc Get all users assigned to a specific role by role ID
+ * @access Private
+ */
+export const getAllUsersWithRoleByUserId = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const authenticatedUserId = req.user?._id;
+    const { userId } = req.params; // We're passing userId as a URL parameter
+
+    try {
+        // Validate if the user is authenticated and a system owner
+        if (!authenticatedUserId || !(await isSystemOwner(authenticatedUserId))) {
+            res.status(401).json({ error: "Unauthorized access", status: false });
+            return;
+        }
+
+        // Fetch the requesting user and populate roles
+        const requestingUser = await User.findById(authenticatedUserId).populate<{ roles: IRole[] }>("roles");
+        if (!requestingUser) {
+            res.status(404).json({ error: "Requesting user not found", status: false });
+            return;
+        }
+
+        // Check if the requesting user has the permission to read roles
+        const hasPermission = requestingUser.roles.some(role => role.permissions.includes("read_role"));
+        if (!hasPermission) {
+            res.status(403).json({ error: "You're not permitted to view users with assigned roles", status: false });
+            return;
+        }
+
+        // Find the specific user with the given userId
+        const user = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
+
+        if (!user) {
+            res.status(404).json({ error: "User not found", status: false });
+            return;
+        }
+
+        // Respond with the user's info
+        res.status(200).json({
+            message: "User with the specified role fetched successfully",
+            user: {
+                userId: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                user_type: user.user_type,
+                roles: user.roles.map(role => ({
+                    roleId: role._id,
+                    roleName: role.name,
+                    description: role.description
+                }))
+            },
+            status: true
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error", status: false });
+    }
+};
+

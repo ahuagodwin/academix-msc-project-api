@@ -13,5 +13,6 @@ roleRouter.get("/:roleId", authProtect, authorize("read_role"), roleService.getR
 roleRouter.post("/assign/", authProtect, authorize("create_role"), roleService.assignRolesToUser);
 roleRouter.put("/assign/update/", authProtect, authorize("update_role"), roleService.updateAssignedRolesToUser)
 roleRouter.get("/assign/all/roles/", authProtect, authorize("read_role"), roleService.getAllUsersWithRoles)
+roleRouter.get("/user/assign/:userId/", authProtect, authorize("read_role"), roleService.getAllUsersWithRoleByUserId)
 
 export { roleRouter };

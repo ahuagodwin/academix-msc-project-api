@@ -30,6 +30,25 @@ export interface ISchool extends Document {
   }[];
 }
 
+interface Course {
+  name: string;
+}
+
+interface Department {
+  name: string;
+  courses: Course[];
+}
+
+interface Faculty {
+  name: string;
+  departments: Department[];
+}
+
+export interface SchoolWithNested extends ISchool {
+  faculties: Faculty[];
+}
+
+
 export interface AuthenticatedRequest extends Request {
     user?: IUser;
     file?: any
