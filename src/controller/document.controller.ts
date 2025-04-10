@@ -114,9 +114,6 @@ export const createFile = async (req: AuthenticatedRequest, res: Response): Prom
   }
 };
 
-
-
-
 // all file uploaded by a user
 export const getUserFiles = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const session = await mongoose.startSession();
@@ -145,11 +142,43 @@ export const getUserFiles = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
-    // Fetch all files uploaded by the user
-    const files = await File.find({ userId }).sort({ createdAt: -1 }).session(session);
+    // Pagination and query
+    const { page, limit, ...filters } = req.query;
+    const { pageNumber, limitNumber, skip } = paginate(page, limit);
+
+    const query = {
+      ...buildQuery(filters, ["name"]),
+      userId, // fetch only the logged-in user's files
+    };
+
+    const totalRecords = await File.countDocuments(query);
+
+    const files = await File.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber)
+      .select("-__v")
+      .populate("userId", "firstName lastName email")
+      .populate({
+        path: "sharedTo",
+        select: "recipients",
+        populate: { path: "recipients", select: "_id" },
+      });
+
+    const enrichedFiles = files.map((file) => ({
+      ...file.toObject(),
+      sharedCount:
+        file.sharedTo && "recipients" in file.sharedTo
+          ? (file.sharedTo as IShare).recipients.length
+          : 0,
+    }));
 
     await session.commitTransaction();
-    res.status(200).json({ success: true, message: "Files retrieved successfully", data: files });
+    res.status(200).json({ 
+      success: true,  
+      message: "User files retrieved successfully",
+      data: enrichedFiles,
+      pagination: paginateResults(totalRecords, pageNumber, limitNumber), });
   } catch (error) {
     await session.abortTransaction();
     console.error("Error retrieving user files:", error);
@@ -501,6 +530,74 @@ export const getFileAnalytics = async (req: AuthenticatedRequest, res: Response)
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+// export const getUserFilesByID  = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+//   try {
+//     const requesterId = req.user?._id;
+//     const { userId } = req.params;
+
+//     if (!requesterId) {
+//       res.status(401).json({ success: false, message: "Unauthorized access" });
+//       return;
+//     }
+
+//     const user = await User.findById(requesterId).populate<{ roles: IRole[] }>("roles");
+//     if (!user) {
+//       res.status(404).json({ success: false, message: "User not found" });
+//       return;
+//     }
+
+//     const isOwner = isSystemOwner(requesterId);
+//     const hasPermission = user.roles.some((role) => role.permissions.includes("read_file"));
+
+//     if (!isOwner && !hasPermission && requesterId.toString() !== userId) {
+//       res.status(403).json({ success: false, message: "You do not have permission to view these files" });
+//       return;
+//     }
+
+//     // Query and pagination
+//     const { page, limit, ...filters } = req.query;
+//     const { pageNumber, limitNumber, skip } = paginate(page, limit);
+
+//     const query = {
+//       ...buildQuery(filters, ["name"]),
+//       userId: userId, // filter strictly by passed userId
+//     };
+
+//     const totalRecords = await File.countDocuments(query);
+
+//     const files = await File.find(query)
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limitNumber)
+//       .select("-__v")
+//       .populate("userId", "firstName lastName email")
+//       .populate({
+//         path: "sharedTo",
+//         select: "recipients",
+//         populate: { path: "recipients", select: "_id" },
+//       });
+
+//     const enrichedFiles = files.map((file) => ({
+//       ...file.toObject(),
+//       sharedCount:
+//         file.sharedTo && "recipients" in file.sharedTo
+//           ? (file.sharedTo as IShare).recipients.length
+//           : 0,
+//     }));
+
+//     res.status(200).json({
+//       success: true,
+//       message: `Files retrieved for user ${userId}`,
+//       data: enrichedFiles,
+//       pagination: paginateResults(totalRecords, pageNumber, limitNumber),
+//     });
+//   } catch (error) {
+//     console.error("Error fetching files by userId:", error);
+//     res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// };
+
 
 
 
