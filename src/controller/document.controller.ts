@@ -1,12 +1,12 @@
 import { User } from "../models/user.model";
 import File from "../models/file.model";
 import StoragePurchase from "../models/subscription.model";
-import { AuthenticatedRequest, IRole, StorageStatus } from "../types/types";
+import { AuthenticatedRequest, IRole, IShare, StorageStatus } from "../types/types";
 import { Response } from "express";
-import multer from "multer";
 import mongoose from "mongoose";
 import { isSystemOwner } from "../middlewares/isSystemOwner";
 import { deleteFileFromStorage, uploadFileToStorage } from "../helpers/storage";
+import { buildQuery, formatStorageSize, paginate, paginateResults, parseStorageSize } from "../helpers/Helpers";
 
 
 
@@ -246,13 +246,41 @@ export const getAllFiles = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
+         // extracting query parameters
+        const { page, limit, ...filters } = req.query;
+    
+        // applying pagination and filters
+        const { pageNumber, limitNumber, skip } = paginate(page, limit);
+        const query = buildQuery(filters, ["name", "userId.email"]);
+    
+        const totalRecords = await File.countDocuments(query);
+
     // Fetch all files
-    const files = await File.find().sort({ createdAt: -1 });
+    const files = await File.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber)
+      .select("-__v")
+      .populate("userId", "firstName lastName email")
+      .populate({
+        path: "sharedTo",
+        select: "recipients",
+        populate: { path: "recipients", select: "_id" }
+      });
+
+    const enrichedFiles = files.map((file) => ({
+      ...file.toObject(),
+      sharedCount:
+        file.sharedTo && "recipients" in file.sharedTo
+          ? (file.sharedTo as IShare).recipients.length
+          : 0
+    }));
 
     res.status(200).json({
       success: true,
       message: "All files retrieved successfully",
-      data: files,
+      data: enrichedFiles,
+      pagination: paginateResults(totalRecords, pageNumber, limitNumber),
     });
   } catch (error) {
     console.error("Fetch All Files Error:", error);
@@ -382,6 +410,98 @@ export const updateFileWithUpload = async (req: AuthenticatedRequest, res: Respo
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const getFileAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+     // Find user and check roles
+     const user = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
+     if (!user) {
+       res.status(404).json({ error: "User not found", status: false });
+       return;
+     }
+ 
+     if (!isSystemOwner(userId)) {
+       res.status(401).json({ success: false, message: "You do not have permission to view all files analytics" });
+       return;
+     }
+ 
+     // Check user permission
+     const hasPermission = user.roles.some((role) => role.permissions.includes("read_file_analytics"));
+     if (!hasPermission) {
+       res.status(403).json({ error: "You're not permitted to view all files analytics", status: false });
+       return;
+     }
+
+    // Fetch all files from the database
+    const files = await File.find()
+      .populate("sharedTo")
+      .populate("userId", "firstName lastName email");
+
+    // File type counters
+    const fileTypeCount: { [key: string]: number } = {
+      png: 0,
+      pdf: 0,
+      docx: 0,
+      jpeg: 0,
+      jpg: 0,
+      ppt: 0,
+      doc: 0,
+      mp4: 0,
+      pptx: 0,
+      xls: 0,
+      xlsx: 0,
+      fig: 0,
+      total: 0,
+      totalShared: 0
+    };
+
+    let totalSize = 0;
+
+    files.forEach((file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (ext && fileTypeCount[ext] !== undefined) {
+        fileTypeCount[ext]++;
+      }
+
+      // Count total number of shared files with recipients
+      const sharedToRecipientsCount = file.sharedTo && "recipients" in file.sharedTo
+        ? (file.sharedTo as IShare).recipients.length
+        : 0;
+
+      if (sharedToRecipientsCount > 0) {
+        fileTypeCount.totalShared++;
+      }
+
+      // Add to the total size
+      totalSize += parseStorageSize(file.size);
+    });
+
+    // Convert total size to human-readable format
+    const readableTotalSize = formatStorageSize(totalSize);
+
+    res.status(200).json({
+      success: true,
+      message: "File analytics retrieved successfully",
+      data: {
+        ...fileTypeCount,
+        totalSize: readableTotalSize,
+        totalFileCount: files.length, 
+        totalSharedFiles: fileTypeCount.totalShared,
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching file analytics:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 
 
 

@@ -5,7 +5,7 @@ import mongoose, { Schema } from "mongoose";
 const FileShareSchema = new Schema<IFileShare>(
   {
     sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    recipients: [{ type: Schema.Types.ObjectId, ref: "User" }], // Array of users
+    recipients: [{ type: Schema.Types.ObjectId, ref: "User" }],
     file: { type: Schema.Types.ObjectId, ref: "File", required: true },
     groupId: { type: Schema.Types.ObjectId, ref: "Group", default: null },
     permissions: {

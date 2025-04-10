@@ -11,6 +11,7 @@ const storageRouter = Router();
 storageRouter.post("/create/", authProtect, authorize("create_storage"), storageService.createStorageSpace);
 storageRouter.put("/update/:storageId/", authProtect, authorize("update_storage"), storageService.updateStorageSpace);
 storageRouter.delete("/delete/:storageId/", authProtect, authorize("delete_storage"), storageService.deleteStorageSpace);
-storageRouter.get("/all", authProtect, authorize("read_storage"), storageService.getAllStorageSpaces);
+storageRouter.get("/all/", authProtect, authorize("read_storage"), storageService.getAllStorageSpaces);
+storageRouter.get("/analytics/all/", authProtect, authorize("view_storage_analytics"), storageService.getStorageAnalytics);
 
 export {  storageRouter };

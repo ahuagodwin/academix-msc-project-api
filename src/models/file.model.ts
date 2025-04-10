@@ -10,6 +10,7 @@ const FileSchema = new Schema<IFile>(
     status: { type: String, enum: ["active", "archived", "deleted"], default: "active" },
     access: { type: String, enum: ["private", "public", "restricted"], default: "private" },
     tags: { type: [String], default: [] },
+    sharedTo: { type: Schema.Types.ObjectId, ref: "FileShare" },
   },
   { timestamps: true }
 );

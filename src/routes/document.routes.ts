@@ -14,5 +14,6 @@ documentRouter.delete("/file/:fileId/", authProtect, authorize("delete_file"), d
 documentRouter.get("/file/:fileId/", authProtect, authorize("read_file"), documentService.getFileById);
 documentRouter.get("/files/all/", authProtect, authorize("read_file"), documentService.getAllFiles);
 documentRouter.put("/file/:fileId/", authProtect, authorize("update_file"), upload.single("file"), documentService.updateFileWithUpload);
+documentRouter.get("/all/analytics/", authProtect, authorize("read_file_analytics"), documentService.getFileAnalytics)
 
 export { documentRouter };

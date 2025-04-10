@@ -107,13 +107,14 @@ export const permissions: RolePermissions = {
 };
 
 
+export const formatStorageSize = (bytes: number): string => {
+  if (!bytes || isNaN(bytes)) return "0 B";
 
-export const formatStorageSize = (size: number) => {
-  if (size >= 1e12) return `${(size / 1e12).toFixed(2)} TB`;
-  if (size >= 1e9) return `${(size / 1e9).toFixed(2)} GB`;
-  if (size >= 1e6) return `${(size / 1e6).toFixed(2)} MB`;
-  if (size >= 1e3) return `${(size / 1e3).toFixed(2)} KB`;
-  return `${size} Bytes`;
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const index = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = bytes / Math.pow(1024, index);
+
+  return `${size.toFixed(2)} ${units[index]}`;
 };
 
 
@@ -203,4 +204,21 @@ export const paginateResults = (totalRecords: number, page: number, limit: numbe
     totalPages,
     nextPage: page < totalPages ? page + 1 : null,
   };
+};
+
+
+export const parseStorageSize = (value: string | number): number => {
+  if (typeof value === "number") return value;
+
+  const [amountStr, unit = "B"] = value.trim().split(" ");
+  const amount = parseFloat(amountStr);
+  const units = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 ** 2,
+    GB: 1024 ** 3,
+    TB: 1024 ** 4
+  };
+
+  return amount * (units[unit as keyof typeof units] || 1);
 };

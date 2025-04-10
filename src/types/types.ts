@@ -184,6 +184,7 @@ export enum StorageSize {
     price: number;
     storageId: Types.ObjectId
     createdBy: Types.ObjectId
+    users: Types.ObjectId[]
 }
 
  export enum StorageStatus {
@@ -288,6 +289,10 @@ export interface IFaculty extends Document {
     userId?: string
 }
 
+export interface IShare {
+  _id: Types.ObjectId;
+  recipients: Types.ObjectId[]; 
+}
 
 export interface IFile extends Document {
   userId: mongoose.Types.ObjectId; // Owner of the file
@@ -300,6 +305,7 @@ export interface IFile extends Document {
   tags?: string[]; // Tags for categorization
   createdAt: Date;
   updatedAt: Date;
+  sharedTo: mongoose.Types.ObjectId
 }
 
 

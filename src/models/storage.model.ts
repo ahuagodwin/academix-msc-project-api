@@ -9,7 +9,8 @@ const storageSchema: Schema<IStorage> = new Schema(
     price: { type: Number, required: true, },
     status: { type: String, enum: Object.values(StorageStatus), default: StorageStatus.active },
     storageId: { type: mongoose.Schema.Types.ObjectId, unique: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", },
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );

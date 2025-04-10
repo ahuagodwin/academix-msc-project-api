@@ -1,9 +1,10 @@
 import { Response } from "express";
 import mongoose from "mongoose";
-import { AuthenticatedRequest, IRole, StorageSize, StorageStatus } from "../types/types";
+import { AuthenticatedRequest, IRole, StorageStatus } from "../types/types";
 import { User } from "../models/user.model";
 import Storage from "../models/storage.model";
 import { isSystemOwner } from "../middlewares/isSystemOwner";
+import { buildQuery, paginate, paginateResults } from "../helpers/Helpers";
 // Ensure role interface is available
 
 export const createStorageSpace = async (req: AuthenticatedRequest, res: Response):Promise<void> => {
@@ -283,26 +284,36 @@ export const getAllStorageSpaces = async (req: AuthenticatedRequest, res: Respon
       return 
     }
 
-    // Pagination parameters
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+       // extracting query parameters
+      const { page, limit, ...filters } = req.query;
+  
+      // applying pagination and filters
+      const { pageNumber, limitNumber, skip } = paginate(page, limit);
+      const query = buildQuery(filters, ["name", "status"]);
+
+      // Get total count for pagination
+    const totalStorageSpaces = await Storage.countDocuments(query);
 
     // Fetch storage spaces with pagination
-    const storageSpaces = await Storage.find().skip(skip).limit(limit).sort({ createdAt: -1 });
+    const storageSpaces = await Storage.find(query)
+        .skip(skip)
+        .limit(limitNumber)
+        .sort({ createdAt: -1 })
+        .select("-__v")
+        .populate("createdBy", "firstName lastName email user_type")
+        .populate("users", "_id");
 
-    // Get total count for pagination
-    const totalStorageSpaces = await Storage.countDocuments();
+     // Add user count for each storage space
+     const storageSpacesWithUserCount = storageSpaces.map(storage => ({
+      ...storage.toObject(), 
+      userCount: Array.isArray(storage.users) ? storage.users.length : 0
+    }));
 
     res.status(200).json({
       success: true,
       message: "Storage spaces retrieved successfully",
-      data: storageSpaces,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalStorageSpaces / limit),
-        totalItems: totalStorageSpaces,
-      },
+      data: storageSpacesWithUserCount,
+     pagination: paginateResults(totalStorageSpaces, pageNumber, limitNumber),
     });
     return 
 
@@ -310,5 +321,169 @@ export const getAllStorageSpaces = async (req: AuthenticatedRequest, res: Respon
     console.error("Error fetching storage spaces:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
     return 
+  }
+};
+
+
+
+export const getStorageAnalytics = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const user = await User.findById(userId).populate<{ roles: IRole[] }>("roles");
+
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    const hasPermission = user.roles.some(role =>
+      role.permissions.includes("view_storage_analytics")
+    );
+
+    if (!hasPermission) {
+      res.status(403).json({ success: false, message: "Forbidden: Insufficient permissions" });
+      return;
+    }
+
+    const totalStorage = await Storage.countDocuments();
+
+    const allStorages = await Storage.find({}, "users");
+    const userSet = new Set<string>();
+    allStorages.forEach(storage => {
+      storage.users.forEach((user: any) => userSet.add(user.toString()));
+    });
+    const totalUsers = userSet.size;
+
+    const totalActive = await Storage.countDocuments({ status: "active" });
+    const totalInactive = await Storage.countDocuments({ status: "inactive" });
+
+    // Monthly Chart Data (existing)
+    const chartAggregation = await Storage.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    const chartData = chartAggregation.map(item => ({
+      date: `${item._id.year}-${item._id.month.toString().padStart(2, "0")}`,
+      value: item.count
+    }));
+
+    // Daily trends (last 30 days)
+    const dailyTrends = await Storage.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+    ]);
+
+    const formattedDailyTrends = dailyTrends.map(item => ({
+      date: `${item._id.year}-${item._id.month.toString().padStart(2, "0")}-${item._id.day.toString().padStart(2, "0")}`,
+      value: item.count
+    }));
+
+    // Weekly trends (last 8 weeks)
+    const weeklyTrends = await Storage.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $isoWeekYear: "$createdAt" },
+            week: { $isoWeek: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.week": 1 } }
+    ]);
+
+    const formattedWeeklyTrends = weeklyTrends.map(item => ({
+      week: `W${item._id.week} ${item._id.year}`,
+      value: item.count
+    }));
+
+    // User activity trends
+    const userActivityTrends = await Storage.aggregate([
+      {
+        $group: {
+          _id: "$createdBy",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $unwind: "$user"
+      },
+      {
+        $project: {
+          _id: 0,
+          userId: "$user._id",
+          fullName: {
+            $concat: ["$user.firstName", " ", "$user.lastName"]
+          },
+          count: 1
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Storage analytics retrieved successfully",
+      data: {
+        totalStorage,
+        totalUsers,
+        totalActive,
+        totalInactive,
+        chartData,
+        dailyTrends: formattedDailyTrends,
+        weeklyTrends: formattedWeeklyTrends,
+        userActivityTrends
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching storage analytics:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
