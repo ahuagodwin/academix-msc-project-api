@@ -17,6 +17,7 @@ const createFile = async (req, res) => {
     session.startTransaction();
     try {
         const userId = req.user?._id;
+        console.log("File received:", req.file);
         if (!userId) {
             await session.abortTransaction();
             res.status(401).json({ success: false, message: "Unauthorized access" });

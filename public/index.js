@@ -23,7 +23,7 @@ app.use((0, cors_1.default)({
     origin: [`${env_1.FRONTEND_URL_LOCAL}`, `${env_1.FRONTEND_URL_LIVE}`, `${env_1.BACKEND_URL_LOCAL}`, `${env_1.BACKEND_URL_LIVE}`,],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: env_1.METHODS,
 }));
 app.use(body_parser_1.default.json());
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: "50mb" }));
@@ -32,7 +32,7 @@ app.use((0, compression_1.default)());
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)('dev'));
 app.use(express_1.default.json({ limit: "50mb" }));
-app.use('/uploads/', express_1.default.static(path_1.default.join(__dirname, 'uploads')));
+app.use('public/uploads', express_1.default.static(path_1.default.join(__dirname, 'uploads')));
 const server = http_1.default.createServer(app);
 app.use("/api/v1/auth", routes_1.Routes.authRouter);
 app.use("/api/v1/school", routes_1.Routes.schoolRouter);

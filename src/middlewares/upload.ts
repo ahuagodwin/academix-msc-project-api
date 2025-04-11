@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
-
+ 
 // Multer upload instance
 export const upload = multer({ storage });
 

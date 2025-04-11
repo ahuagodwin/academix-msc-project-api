@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { isSystemOwner } from "../middlewares/isSystemOwner";
 import { deleteFileFromStorage, uploadFileToStorage } from "../helpers/storage";
 import { buildQuery, formatStorageSize, paginate, paginateResults, parseStorageSize } from "../helpers/Helpers";
+import { uploadFileToCloudinary } from "../storage/cloudinary";
 
 export const createFile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const session = await mongoose.startSession();
@@ -14,7 +15,6 @@ export const createFile = async (req: AuthenticatedRequest, res: Response): Prom
 
   try {
     const userId = req.user?._id;
-    console.log("File received:", req.file); 
     if (!userId) {
       await session.abortTransaction();
       res.status(401).json({ success: false, message: "Unauthorized access" });
@@ -90,13 +90,17 @@ export const createFile = async (req: AuthenticatedRequest, res: Response): Prom
 
     await storagePlan.save({ session });
 
+    // Step 6: Upload file to Cloudinary
+    const filePath = req.file.path;  
+    const cloudinaryUrl = await uploadFileToCloudinary(filePath);
+
     // Step 6: Save File
     const newFile = new File({
       userId: userId,
       name: originalname,
       fileType: mimetype,
       size,
-      storagePath: `/uploads/${filename}`,
+      storagePath: cloudinaryUrl,
       access: "private",
       tags: [],
     });

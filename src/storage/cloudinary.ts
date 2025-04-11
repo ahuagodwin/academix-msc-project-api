@@ -1,32 +1,22 @@
+import { CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME } from "../config/env";
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: CLOUDINARY_CLOUD_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
 });
-
-// Define storage
-const storage = new CloudinaryStorage({
-    cloudinary,
-    params: async (_, file) => ({
-      folder: "uploads", // Cloudinary folder name
-      resource_type: "auto", // Allows image, video, and documents
-      public_id: `${Date.now()}-${file.originalname.split(".")[0]}`, // Set file name without extension
-    }),
-  });
-  
 
 // Function to upload file
 export const uploadFileToCloudinary = async (filePath: string): Promise<string> => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       resource_type: "auto",
+      folder: 'academix', 
     });
     return result.secure_url;
   } catch (error) {
@@ -34,14 +24,17 @@ export const uploadFileToCloudinary = async (filePath: string): Promise<string> 
     throw new Error("Error uploading file to Cloudinary");
   }
 };
-
+ 
 // Function to delete file
 export const deleteFileFromCloudinary = async (fileUrl: string): Promise<void> => {
   try {
-    const publicId = fileUrl.split("/").pop()?.split(".")[0]; // Extract public ID
+    // Extract public ID correctly, handling cases where URL has file extensions or extra slashes
+    const publicId = fileUrl.split("/").slice(-2, -1).join("");  // Get the right part for public ID
     if (publicId) {
       await cloudinary.uploader.destroy(publicId);
       console.log(`File deleted from Cloudinary: ${fileUrl}`);
+    } else {
+      throw new Error("Failed to extract public ID for deletion");
     }
   } catch (error) {
     console.error("Cloudinary Deletion Error:", error);
@@ -49,4 +42,4 @@ export const deleteFileFromCloudinary = async (fileUrl: string): Promise<void> =
   }
 };
 
-export { cloudinary, storage };
+export { cloudinary };
