@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateFileWithUpload = exports.getFileById = exports.getAllFiles = exports.deleteFile = exports.getUserFiles = exports.createFile = void 0;
+exports.getFileAnalytics = exports.updateFileWithUpload = exports.getFileById = exports.getAllFiles = exports.deleteFile = exports.getUserFiles = exports.createFile = void 0;
 const user_model_1 = require("../models/user.model");
 const file_model_1 = __importDefault(require("../models/file.model"));
 const subscription_model_1 = __importDefault(require("../models/subscription.model"));
@@ -11,6 +11,7 @@ const types_1 = require("../types/types");
 const mongoose_1 = __importDefault(require("mongoose"));
 const isSystemOwner_1 = require("../middlewares/isSystemOwner");
 const storage_1 = require("../helpers/storage");
+const Helpers_1 = require("../helpers/Helpers");
 const createFile = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
@@ -41,7 +42,8 @@ const createFile = async (req, res) => {
             res.status(400).json({ success: false, message: "No file uploaded" });
             return;
         }
-        const { originalname, mimetype, size, filename } = req.file; // `filename` comes from multer's `diskStorage`
+        const { originalname, mimetype, size, filename } = req.file;
+        console.log("File uploaded:", filename);
         // Step 1: Validate File Extension
         const allowedExtensions = ["png", "jpeg", "jpg", "fig", "docx", "doc", "pdf", "xls", "xlsx", "mp4", "pptx"];
         const fileExtension = originalname.split(".").pop()?.toLowerCase();
@@ -124,10 +126,38 @@ const getUserFiles = async (req, res) => {
             res.status(403).json({ error: "You're not permitted to view files", status: false });
             return;
         }
-        // Fetch all files uploaded by the user
-        const files = await file_model_1.default.find({ userId }).sort({ createdAt: -1 }).session(session);
+        // Pagination and query
+        const { page, limit, ...filters } = req.query;
+        const { pageNumber, limitNumber, skip } = (0, Helpers_1.paginate)(page, limit);
+        const query = {
+            ...(0, Helpers_1.buildQuery)(filters, ["name"]),
+            userId, // fetch only the logged-in user's files
+        };
+        const totalRecords = await file_model_1.default.countDocuments(query);
+        const files = await file_model_1.default.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNumber)
+            .select("-__v")
+            .populate("userId", "firstName lastName email")
+            .populate({
+            path: "sharedTo",
+            select: "recipients",
+            populate: { path: "recipients", select: "_id" },
+        });
+        const enrichedFiles = files.map((file) => ({
+            ...file.toObject(),
+            sharedCount: file.sharedTo && "recipients" in file.sharedTo
+                ? file.sharedTo.recipients.length
+                : 0,
+        }));
         await session.commitTransaction();
-        res.status(200).json({ success: true, message: "Files retrieved successfully", data: files });
+        res.status(200).json({
+            success: true,
+            message: "User files retrieved successfully",
+            data: enrichedFiles,
+            pagination: (0, Helpers_1.paginateResults)(totalRecords, pageNumber, limitNumber),
+        });
     }
     catch (error) {
         await session.abortTransaction();
@@ -213,12 +243,35 @@ const getAllFiles = async (req, res) => {
             res.status(403).json({ error: "You're not permitted to view all files", status: false });
             return;
         }
+        // extracting query parameters
+        const { page, limit, ...filters } = req.query;
+        // applying pagination and filters
+        const { pageNumber, limitNumber, skip } = (0, Helpers_1.paginate)(page, limit);
+        const query = (0, Helpers_1.buildQuery)(filters, ["name"]);
+        const totalRecords = await file_model_1.default.countDocuments(query);
         // Fetch all files
-        const files = await file_model_1.default.find().sort({ createdAt: -1 });
+        const files = await file_model_1.default.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNumber)
+            .select("-__v")
+            .populate("userId", "firstName lastName email")
+            .populate({
+            path: "sharedTo",
+            select: "recipients",
+            populate: { path: "recipients", select: "_id" }
+        });
+        const enrichedFiles = files.map((file) => ({
+            ...file.toObject(),
+            sharedCount: file.sharedTo && "recipients" in file.sharedTo
+                ? file.sharedTo.recipients.length
+                : 0
+        }));
         res.status(200).json({
             success: true,
             message: "All files retrieved successfully",
-            data: files,
+            data: enrichedFiles,
+            pagination: (0, Helpers_1.paginateResults)(totalRecords, pageNumber, limitNumber),
         });
     }
     catch (error) {
@@ -335,6 +388,141 @@ const updateFileWithUpload = async (req, res) => {
     }
 };
 exports.updateFileWithUpload = updateFileWithUpload;
+const getFileAnalytics = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized access" });
+            return;
+        }
+        // Find user and check roles
+        const user = await user_model_1.User.findById(userId).populate("roles");
+        if (!user) {
+            res.status(404).json({ error: "User not found", status: false });
+            return;
+        }
+        if (!(0, isSystemOwner_1.isSystemOwner)(userId)) {
+            res.status(401).json({ success: false, message: "You do not have permission to view all files analytics" });
+            return;
+        }
+        // Check user permission
+        const hasPermission = user.roles.some((role) => role.permissions.includes("read_file_analytics"));
+        if (!hasPermission) {
+            res.status(403).json({ error: "You're not permitted to view all files analytics", status: false });
+            return;
+        }
+        // Fetch all files from the database
+        const files = await file_model_1.default.find()
+            .populate("sharedTo")
+            .populate("userId", "firstName lastName email");
+        // File type counters
+        const fileTypeCount = {
+            png: 0,
+            pdf: 0,
+            docx: 0,
+            jpeg: 0,
+            jpg: 0,
+            ppt: 0,
+            doc: 0,
+            mp4: 0,
+            pptx: 0,
+            xls: 0,
+            xlsx: 0,
+            fig: 0,
+            total: 0,
+            totalShared: 0
+        };
+        let totalSize = 0;
+        files.forEach((file) => {
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            if (ext && fileTypeCount[ext] !== undefined) {
+                fileTypeCount[ext]++;
+            }
+            // Count total number of shared files with recipients
+            const sharedToRecipientsCount = file.sharedTo && "recipients" in file.sharedTo
+                ? file.sharedTo.recipients.length
+                : 0;
+            if (sharedToRecipientsCount > 0) {
+                fileTypeCount.totalShared++;
+            }
+            // Add to the total size
+            totalSize += (0, Helpers_1.parseStorageSize)(file.size);
+        });
+        // Convert total size to human-readable format
+        const readableTotalSize = (0, Helpers_1.formatStorageSize)(totalSize);
+        res.status(200).json({
+            success: true,
+            message: "File analytics retrieved successfully",
+            data: {
+                ...fileTypeCount,
+                totalSize: readableTotalSize,
+                totalFileCount: files.length,
+                totalSharedFiles: fileTypeCount.totalShared,
+            }
+        });
+    }
+    catch (error) {
+        console.error("Error fetching file analytics:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+exports.getFileAnalytics = getFileAnalytics;
+// export const getUserFilesByID  = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+//   try {
+//     const requesterId = req.user?._id;
+//     const { userId } = req.params;
+//     if (!requesterId) {
+//       res.status(401).json({ success: false, message: "Unauthorized access" });
+//       return;
+//     }
+//     const user = await User.findById(requesterId).populate<{ roles: IRole[] }>("roles");
+//     if (!user) {
+//       res.status(404).json({ success: false, message: "User not found" });
+//       return;
+//     }
+//     const isOwner = isSystemOwner(requesterId);
+//     const hasPermission = user.roles.some((role) => role.permissions.includes("read_file"));
+//     if (!isOwner && !hasPermission && requesterId.toString() !== userId) {
+//       res.status(403).json({ success: false, message: "You do not have permission to view these files" });
+//       return;
+//     }
+//     // Query and pagination
+//     const { page, limit, ...filters } = req.query;
+//     const { pageNumber, limitNumber, skip } = paginate(page, limit);
+//     const query = {
+//       ...buildQuery(filters, ["name"]),
+//       userId: userId, // filter strictly by passed userId
+//     };
+//     const totalRecords = await File.countDocuments(query);
+//     const files = await File.find(query)
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limitNumber)
+//       .select("-__v")
+//       .populate("userId", "firstName lastName email")
+//       .populate({
+//         path: "sharedTo",
+//         select: "recipients",
+//         populate: { path: "recipients", select: "_id" },
+//       });
+//     const enrichedFiles = files.map((file) => ({
+//       ...file.toObject(),
+//       sharedCount:
+//         file.sharedTo && "recipients" in file.sharedTo
+//           ? (file.sharedTo as IShare).recipients.length
+//           : 0,
+//     }));
+//     res.status(200).json({
+//       success: true,
+//       message: `Files retrieved for user ${userId}`,
+//       data: enrichedFiles,
+//       pagination: paginateResults(totalRecords, pageNumber, limitNumber),
+//     });
+//   } catch (error) {
+//     console.error("Error fetching files by userId:", error);
+//     res.status(500).json({ success: false, message: "Internal server error" });
+//   }
+// };
 // TODO: I will need to implement this cloudinary and firebase file management when moving to large app like "Global Settings"
 // export const createFileWithCloudinaryAndFirebase = async (req: AuthenticatedRequest, res: Response) => {
 //   try {

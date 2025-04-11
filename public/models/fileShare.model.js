@@ -37,13 +37,12 @@ const types_1 = require("../types/types");
 const mongoose_1 = __importStar(require("mongoose"));
 const FileShareSchema = new mongoose_1.Schema({
     sender: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
-    recipients: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "User" }], // Array of users
-    file: { type: mongoose_1.Schema.Types.ObjectId, ref: "File", required: true },
-    groupId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Group", default: null },
+    recipients: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "User" }],
+    file: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "File", required: true }],
+    groupId: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Group", default: null }],
     permissions: {
         type: [String],
-        enum: [types_1.UserPermission.READ, types_1.UserPermission.UPDATE, types_1.UserPermission.DOWNLOAD, types_1.UserPermission.DELETE],
-        default: [types_1.UserPermission.READ],
+        enum: [types_1.SharePermission.READ, types_1.SharePermission.UPDATE, types_1.SharePermission.DOWNLOAD, types_1.SharePermission.DELETE],
     },
 }, { timestamps: true });
 const FileShare = mongoose_1.default.model("FileShare", FileShareSchema);

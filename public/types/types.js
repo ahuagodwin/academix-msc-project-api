@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserFaculty = exports.UserType = exports.StorageStatus = exports.StorageSize = exports.UserDepartment = exports.DocumentTypes = exports.DocumentStatus = exports.UserStatus = exports.Gender = exports.UserPermission = exports.UserRoles = exports.Schools = void 0;
+exports.UserFaculty = exports.UserType = exports.StorageStatus = exports.StorageSize = exports.UserDepartment = exports.DocumentTypes = exports.DocumentStatus = exports.UserStatus = exports.Gender = exports.SharePermission = exports.UserPermission = exports.UserRoles = exports.Schools = void 0;
 // SCHOOL LIST
 var Schools;
 (function (Schools) {
@@ -29,6 +29,14 @@ var UserPermission;
     UserPermission["DELETE"] = "delete_file";
     UserPermission["DOWNLOAD"] = "download_file";
 })(UserPermission || (exports.UserPermission = UserPermission = {}));
+var SharePermission;
+(function (SharePermission) {
+    SharePermission["CREATE"] = "create_shared_file";
+    SharePermission["READ"] = "read_shared_file";
+    SharePermission["UPDATE"] = "update_shared_file";
+    SharePermission["DELETE"] = "delete_shared_file";
+    SharePermission["DOWNLOAD"] = "download_shared_file";
+})(SharePermission || (exports.SharePermission = SharePermission = {}));
 var Gender;
 (function (Gender) {
     Gender["MALE"] = "male";

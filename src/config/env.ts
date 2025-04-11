@@ -28,7 +28,8 @@ export const {
   NO_REPLY_EMAIL,
   ACADEMIX_FLW_WEB_HOOK_URL,
   FLW_TRANSFER_API_URL,
-  BACKEND_URL_LIVE
+  BACKEND_URL_LIVE,
+  METHODS
 } = process.env;
 
 if (
@@ -57,7 +58,8 @@ if (
   !NO_REPLY_EMAIL ||
   !ACADEMIX_FLW_WEB_HOOK_URL ||
   !FLW_TRANSFER_API_URL || 
-  !BACKEND_URL_LIVE
+  !BACKEND_URL_LIVE ||
+  !METHODS?.split(',')
 ) {
   throw new Error("Missing environment variables");
 }

@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.paginateResults = exports.buildQuery = exports.paginate = exports.formatStorageSize = exports.permissions = exports.generateToken = exports.generateRefreshToken = exports.generateOTP = exports.generateRandomPassword = exports.generateInitials = exports.monthNames = exports.hashedToken = exports.getEnvVariable = void 0;
+exports.parseStorageSize = exports.paginateResults = exports.buildQuery = exports.paginate = exports.formatStorageSize = exports.permissions = exports.generateToken = exports.generateRefreshToken = exports.generateOTP = exports.generateRandomPassword = exports.generateInitials = exports.monthNames = exports.hashedToken = exports.getEnvVariable = void 0;
 const crypto_1 = __importDefault(require("crypto"));
 const ms_1 = __importDefault(require("ms"));
 const jwt = __importStar(require("jsonwebtoken"));
@@ -120,16 +120,13 @@ exports.permissions = {
     teacher: ["read_student"],
     student: ["read_dashboard"],
 };
-const formatStorageSize = (size) => {
-    if (size >= 1e12)
-        return `${(size / 1e12).toFixed(2)} TB`;
-    if (size >= 1e9)
-        return `${(size / 1e9).toFixed(2)} GB`;
-    if (size >= 1e6)
-        return `${(size / 1e6).toFixed(2)} MB`;
-    if (size >= 1e3)
-        return `${(size / 1e3).toFixed(2)} KB`;
-    return `${size} Bytes`;
+const formatStorageSize = (bytes) => {
+    if (!bytes || isNaN(bytes))
+        return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const index = Math.floor(Math.log(bytes) / Math.log(1024));
+    const size = bytes / Math.pow(1024, index);
+    return `${size.toFixed(2)} ${units[index]}`;
 };
 exports.formatStorageSize = formatStorageSize;
 // for page and limit
@@ -140,17 +137,58 @@ const paginate = (page, limit) => {
     return { pageNumber, limitNumber, skip };
 };
 exports.paginate = paginate;
-// for search or filter query
-const buildQuery = (filters) => {
+// for search or filter query 
+// TODO: This is fall back buildQuery in case of error with the updated  buildQuery
+// export const buildQuery = (filters: any) => {
+//   const query: any = {};
+//   Object.keys(filters).forEach((key) => {
+//     const value = filters[key];
+//     if (value) {
+//       // If the value is a string, apply regex for partial match
+//       if (typeof value === "string") {
+//         query[key] = { $regex: value, $options: "i" };
+//       } else {
+//         query[key] = value;
+//       }
+//     }
+//   });
+//   return query;
+// };
+const buildQuery = (filters, searchableFields = []) => {
     const query = {};
-    // Iterate over the provided filters and add them to the query
+    if (filters.search && searchableFields.length > 0) {
+        const searchRegex = { $regex: filters.search, $options: "i" };
+        query.$or = searchableFields.map((field) => ({
+            [field]: searchRegex,
+        }));
+    }
+    // Handle other filters (excluding "search")
     Object.keys(filters).forEach((key) => {
-        if (filters[key])
-            query[key] = filters[key];
+        if (key !== "search" && filters[key]) {
+            query[key] = { $regex: filters[key], $options: "i" };
+        }
     });
     return query;
 };
 exports.buildQuery = buildQuery;
+// export const buildQuery = (filters: any, searchableFields: string[] = []) => {
+//   const query: any = {};
+//   const { search, ...restFilters } = filters;
+//   // Apply direct filters
+//   Object.keys(restFilters).forEach((key) => {
+//     if (restFilters[key]) {
+//       query[key] = { $regex: restFilters[key], $options: "i" };
+//     }
+//   });
+//   // Apply search across all searchable fields
+//   if (search && searchableFields.length > 0) {
+//     const searchRegex = new RegExp(search, "i");
+//     query.$or = searchableFields.map((field) => ({
+//       [field]: searchRegex,
+//     }));
+//   }
+//   return query;
+// };
 // for pagination control 
 const paginateResults = (totalRecords, page, limit) => {
     const totalPages = Math.ceil(totalRecords / limit);
@@ -159,6 +197,22 @@ const paginateResults = (totalRecords, page, limit) => {
         currentPage: page,
         totalPages,
         nextPage: page < totalPages ? page + 1 : null,
+        previousPage: page > 1 ? page - 1 : null,
     };
 };
 exports.paginateResults = paginateResults;
+const parseStorageSize = (value) => {
+    if (typeof value === "number")
+        return value;
+    const [amountStr, unit = "B"] = value.trim().split(" ");
+    const amount = parseFloat(amountStr);
+    const units = {
+        B: 1,
+        KB: 1024,
+        MB: 1024 ** 2,
+        GB: 1024 ** 3,
+        TB: 1024 ** 4
+    };
+    return amount * (units[unit] || 1);
+};
+exports.parseStorageSize = parseStorageSize;

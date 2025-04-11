@@ -33,16 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.groupRouter = void 0;
+exports.userRouter = void 0;
 const authorized_md_1 = require("../middlewares/authorized.md");
-const groupService = __importStar(require("../controller/group.controller"));
+const userService = __importStar(require("../controller/user.controller"));
 const express_1 = require("express");
-const groupRouter = (0, express_1.Router)();
-exports.groupRouter = groupRouter;
-groupRouter.post("/create/", authorized_md_1.authProtect, groupService.createGroup);
-groupRouter.put("/update/:groupId/", authorized_md_1.authProtect, groupService.updateGroup);
-groupRouter.post("/add-user-to-group/:groupId/", authorized_md_1.authProtect, groupService.addUsersToGroup);
-groupRouter.delete("/delete/:groupId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("delete_group"), groupService.deleteGroup);
-groupRouter.get("/all", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_group"), groupService.getAllGroups);
-groupRouter.get("/user-groups/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_user_group"), groupService.getUserGroups);
-groupRouter.post("/request-access/:groupId/", authorized_md_1.authProtect, groupService.requestAccessToGroup);
+const userRouter = (0, express_1.Router)();
+exports.userRouter = userRouter;
+// AUTHENTICATION routes
+userRouter.get("/users/all/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_users"), userService.getAllUsers);

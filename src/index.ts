@@ -7,7 +7,7 @@ import cookiesParser from 'cookie-parser';
 import compression from 'compression';
 import morgan from 'morgan'
 import helmet from 'helmet';
-import { BACKEND_URL_LIVE, BACKEND_URL_LOCAL, FRONTEND_URL_LIVE, FRONTEND_URL_LOCAL, PORT } from './config/env';
+import { BACKEND_URL_LIVE, BACKEND_URL_LOCAL, FRONTEND_URL_LIVE, FRONTEND_URL_LOCAL, METHODS, PORT } from './config/env';
 import { Routes } from './routes';
 import { connect } from './database/connect';
 import { middlewares } from './middlewares';
@@ -21,7 +21,7 @@ app.use(cors({
     origin: [ `${FRONTEND_URL_LOCAL}`, `${FRONTEND_URL_LIVE}`, `${BACKEND_URL_LOCAL}`, `${BACKEND_URL_LIVE}`, ],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: METHODS,
 }));
 
 app.use(bodyParser.json());
@@ -31,9 +31,7 @@ app.use(compression());
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(express.json({ limit: "50mb" }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-
+app.use('public/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const server = http.createServer(app)
 

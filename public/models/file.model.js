@@ -43,6 +43,7 @@ const FileSchema = new mongoose_1.Schema({
     status: { type: String, enum: ["active", "archived", "deleted"], default: "active" },
     access: { type: String, enum: ["private", "public", "restricted"], default: "private" },
     tags: { type: [String], default: [] },
+    sharedTo: { type: mongoose_1.Schema.Types.ObjectId, ref: "FileShare" },
 }, { timestamps: true });
 const File = mongoose_1.default.model("File", FileSchema);
 exports.default = File;

@@ -42,8 +42,9 @@ const documentRouter = (0, express_1.Router)();
 exports.documentRouter = documentRouter;
 // Document routes
 documentRouter.post("/upload/file/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("create_file"), upload_1.upload.single("file"), documentService.createFile);
-documentRouter.get("/user/all-files/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_file"), documentService.getUserFiles);
+documentRouter.get("/user/files/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_file"), documentService.getUserFiles);
 documentRouter.delete("/file/:fileId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("delete_file"), documentService.deleteFile);
 documentRouter.get("/file/:fileId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_file"), documentService.getFileById);
 documentRouter.get("/files/all/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_file"), documentService.getAllFiles);
 documentRouter.put("/file/:fileId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("update_file"), upload_1.upload.single("file"), documentService.updateFileWithUpload);
+documentRouter.get("/all/analytics/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_file_analytics"), documentService.getFileAnalytics);

@@ -37,7 +37,7 @@ const fundWallet = async (req, res) => {
             tx_ref: transactionReference,
             amount,
             currency: currency || "NGN",
-            redirect_url: `${env_1.FRONTEND_URL_LOCAL}/wallet/success`, // Adjust based on frontend
+            redirect_url: `${env_1.FRONTEND_URL_LOCAL}/wallet/success`,
             customer: {
                 email: user.email,
                 name: user.firstName + " " + user.lastName,
@@ -71,7 +71,7 @@ const fundWallet = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Payment initiated successfully",
-            paymentLink: response.data.data.link, // Redirect the user here
+            paymentLink: response.data.data.link,
         });
     }
     catch (error) {

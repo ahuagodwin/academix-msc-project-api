@@ -15,6 +15,7 @@ const env_1 = require("./config/env");
 const routes_1 = require("./routes");
 const connect_1 = require("./database/connect");
 const middlewares_1 = require("./middlewares");
+const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 // Middleware setup
 app.use((0, helmet_1.default)());
@@ -22,7 +23,7 @@ app.use((0, cors_1.default)({
     origin: [`${env_1.FRONTEND_URL_LOCAL}`, `${env_1.FRONTEND_URL_LIVE}`, `${env_1.BACKEND_URL_LOCAL}`, `${env_1.BACKEND_URL_LIVE}`,],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 app.use(body_parser_1.default.json());
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: "50mb" }));
@@ -31,6 +32,7 @@ app.use((0, compression_1.default)());
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)('dev'));
 app.use(express_1.default.json({ limit: "50mb" }));
+app.use('/uploads/', express_1.default.static(path_1.default.join(__dirname, 'uploads')));
 const server = http_1.default.createServer(app);
 app.use("/api/v1/auth", routes_1.Routes.authRouter);
 app.use("/api/v1/school", routes_1.Routes.schoolRouter);
@@ -46,6 +48,7 @@ app.use("/api/v1/group", routes_1.Routes.groupRouter);
 app.use("/api/v1/notifications", routes_1.Routes.notificationRouter);
 app.use("/api/v1/payout", routes_1.Routes.payoutRouter);
 app.use("/api/v1/finance", routes_1.Routes.financialSummaryRouter);
+app.use("/api/v1/user", routes_1.Routes.userRouter);
 // Error handling middleware
 app.use(middlewares_1.middlewares.errorHandler);
 // Start the server

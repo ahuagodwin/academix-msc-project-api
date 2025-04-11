@@ -368,6 +368,9 @@ exports.getUserById = (0, express_async_handler_1.default)(async (req, res, next
         // Fetch the user and populate roles
         const user = await user_model_1.User.findById(userId)
             .populate("roles")
+            .populate("school", "name")
+            .populate("wallet", "balance")
+            .populate("storage_spaces", "size")
             .session(session);
         if (!user) {
             await session.abortTransaction();
@@ -399,7 +402,10 @@ exports.getUserById = (0, express_async_handler_1.default)(async (req, res, next
                     roleId: role._id,
                     roleName: role.name,
                     description: role.description
-                }))
+                })),
+                school: user.school || null,
+                wallet: user.wallet || null,
+                storage_spaces: user.storage_spaces || []
             },
         });
         // Commit transaction

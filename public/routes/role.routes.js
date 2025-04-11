@@ -46,5 +46,6 @@ roleRouter.delete("/delete/:roleId/", authorized_md_1.authProtect, (0, authorize
 roleRouter.get("/all", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_role"), roleService.getAllRoles);
 roleRouter.get("/:roleId", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_role"), roleService.getRoleById);
 roleRouter.post("/assign/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("create_role"), roleService.assignRolesToUser);
-roleRouter.put("/assign/update/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("update_role"), roleService.updateAssignedRolesToUser);
+roleRouter.put("/role/assign/update/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("update_role"), roleService.updateAssignedRolesToUser);
 roleRouter.get("/assign/all/roles/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_role"), roleService.getAllUsersWithRoles);
+roleRouter.get("/user/assign/:userId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_role"), roleService.getAllUsersWithRoleByUserId);

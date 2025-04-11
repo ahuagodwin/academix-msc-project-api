@@ -42,7 +42,8 @@ const storageSchema = new mongoose_1.Schema({
     price: { type: Number, required: true, },
     status: { type: String, enum: Object.values(types_1.StorageStatus), default: types_1.StorageStatus.active },
     storageId: { type: mongoose_1.default.Schema.Types.ObjectId, unique: true },
-    createdBy: { type: mongoose_1.default.Schema.Types.ObjectId },
+    createdBy: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "User", },
+    users: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "User" }],
 }, { timestamps: true });
 storageSchema.pre("save", function (next) {
     if (!this.storageId) {

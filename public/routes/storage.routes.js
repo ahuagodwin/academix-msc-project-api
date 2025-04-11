@@ -43,4 +43,5 @@ exports.storageRouter = storageRouter;
 storageRouter.post("/create/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("create_storage"), storageService.createStorageSpace);
 storageRouter.put("/update/:storageId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("update_storage"), storageService.updateStorageSpace);
 storageRouter.delete("/delete/:storageId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("delete_storage"), storageService.deleteStorageSpace);
-storageRouter.get("/all", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_storage"), storageService.getAllStorageSpaces);
+storageRouter.get("/all/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_storage"), storageService.getAllStorageSpaces);
+storageRouter.get("/analytics/all/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("view_storage_analytics"), storageService.getStorageAnalytics);

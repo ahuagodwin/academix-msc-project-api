@@ -15,6 +15,7 @@ const storage_routes_1 = require("./storage.routes");
 const student_routes_1 = require("./student.routes");
 const subscription_routes_1 = require("./subscription.routes");
 const teacher_routes_1 = require("./teacher.routes");
+const user_routes_1 = require("./user.routes");
 exports.Routes = {
     authRouter: auth_routes_1.authRouter,
     schoolRouter: schools_routes_1.schoolRouter,
@@ -29,5 +30,6 @@ exports.Routes = {
     groupRouter: group_routes_1.groupRouter,
     notificationRouter: notifications_routes_1.notificationRouter,
     payoutRouter: payout_routes_1.payoutRouter,
-    financialSummaryRouter: financialSummary_routes_1.financialSummaryRouter
+    financialSummaryRouter: financialSummary_routes_1.financialSummaryRouter,
+    userRouter: user_routes_1.userRouter
 };

@@ -10,6 +10,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const isSystemOwner_1 = require("../middlewares/isSystemOwner");
 const notification_1 = require("../email/notification");
 const groupRequest_model_1 = __importDefault(require("../models/groupRequest.model"));
+const Helpers_1 = require("../helpers/Helpers");
 // Create a Group**
 const createGroup = async (req, res) => {
     const session = await mongoose_1.default.startSession();
@@ -240,15 +241,26 @@ const getUserGroups = async (req, res) => {
             res.status(401).json({ success: false, message: "Unauthorized" });
             return;
         }
+        // extracting query parameters
+        const { page, limit, ...filters } = req.query;
+        // applying pagination and filters
+        const { pageNumber, limitNumber, skip } = (0, Helpers_1.paginate)(page, limit);
+        const query = (0, Helpers_1.buildQuery)(filters, ["name"]);
+        const totalRecords = await group_model_1.default.countDocuments(query);
         // Fetch groups where the user is a member or owner
-        const groups = await group_model_1.default.find({ members: userId })
-            .populate("owner", "name email") // Fetch owner details
-            .populate("members", "name email") // Fetch member details
+        const groups = await group_model_1.default.find({ members: userId, ...query })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNumber)
+            .select("-__v")
+            .populate("owner", "email firstName lastName") // Fetch owner details
+            .populate("members", "firstName lastName email") // Fetch member details
             .lean();
         res.status(200).json({
             success: true,
             message: "User groups retrieved successfully",
             data: groups,
+            pagination: (0, Helpers_1.paginateResults)(totalRecords, pageNumber, limitNumber),
         });
     }
     catch (error) {

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCourseById = exports.getAllCourses = exports.deleteCourse = exports.updateCourse = exports.createCourses = exports.getDepartmentById = exports.getAllDepartments = exports.deleteDepartment = exports.updateDepartment = exports.createDepartments = exports.getFacultyById = exports.getAllFaculties = exports.deleteFaculty = exports.updateFaculty = exports.createFaculty = exports.getSchoolById = exports.getAllSchools = exports.deleteSchool = exports.updateSchool = exports.createSchool = void 0;
+exports.schoolAnalytics = exports.getCourseById = exports.getAllCourses = exports.deleteCourse = exports.updateCourse = exports.createCourses = exports.getDepartmentById = exports.getAllDepartments = exports.deleteDepartment = exports.updateDepartment = exports.createDepartments = exports.getFacultyById = exports.getAllFaculties = exports.deleteFaculty = exports.updateFaculty = exports.createFaculty = exports.getSchoolById = exports.getAllSchools = exports.deleteSchool = exports.updateSchool = exports.createSchool = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = require("../models/user.model");
 const school_model_1 = __importDefault(require("../models/school.model"));
@@ -245,32 +245,61 @@ const getAllSchools = async (req, res) => {
             res.status(401).json({ error: "Unauthorized access", status: false });
             return;
         }
-        // Check if the user is a system owner
         if (!(0, isSystemOwner_1.isSystemOwner)(userId)) {
-            res.status(403).json({ error: "Only system owners can view schools", status: false });
+            res
+                .status(403)
+                .json({ error: "Only system owners can view schools", status: false });
             return;
         }
-        // Fetch user and populate roles
         const user = await user_model_1.User.findById(userId).populate("roles");
         if (!user) {
             res.status(404).json({ error: "User not found", status: false });
             return;
         }
-        // Check if the user is a system owner or has read permission
-        const hasPermission = (0, isSystemOwner_1.isSystemOwner)(userId) || user.roles.some((role) => role.permissions.includes("read_school"));
+        const hasPermission = (0, isSystemOwner_1.isSystemOwner)(userId) ||
+            user.roles.some((role) => role.permissions.includes("read_school"));
         if (!hasPermission) {
             res.status(403).json({ error: "You're not permitted to view schools", status: false });
             return;
         }
-        // Fetch all schools
-        const schools = await school_model_1.default.find().select("-__v -_id");
+        // extracting query parameters
+        const { page, limit, ...filters } = req.query;
+        // applying pagination and filters
+        const { pageNumber, limitNumber, skip } = (0, Helpers_1.paginate)(page, limit);
+        const query = (0, Helpers_1.buildQuery)(filters, ["name", "code"]);
+        const totalRecords = await school_model_1.default.countDocuments(query);
+        const schools = await school_model_1.default.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNumber)
+            .select("-__v");
         if (!schools || schools.length === 0) {
             res.status(404).json({ error: "No schools found", status: false });
             return;
         }
+        const enrichedSchools = await Promise.all(schools.map(async (school) => {
+            const facultyCount = school.faculties.length;
+            let departmentCount = 0;
+            let courseCount = 0;
+            school.faculties.forEach((faculty) => {
+                departmentCount += faculty.departments.length;
+                faculty.departments.forEach((dept) => {
+                    courseCount += dept.courses.length;
+                });
+            });
+            const userCount = await user_model_1.User.countDocuments({ schoolId: school.schoolId });
+            return {
+                ...school.toObject(),
+                totalFaculties: facultyCount,
+                totalDepartments: departmentCount,
+                totalCourses: courseCount,
+                totalUsers: userCount,
+            };
+        }));
         res.status(200).json({
             message: "Schools retrieved successfully",
-            schools,
+            schools: enrichedSchools,
+            pagination: (0, Helpers_1.paginateResults)(totalRecords, pageNumber, limitNumber),
             status: true,
         });
     }
@@ -320,8 +349,7 @@ const createFaculty = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { schoolId } = req.params;
-        const { faculties } = req.body;
+        const { faculties, schoolId } = req.body; // an array of faculties and school Id
         const userId = req.user?._id;
         if (!userId || !(0, isSystemOwner_1.isSystemOwner)(userId)) {
             res.status(401).json({ error: "Unauthorized access", status: false });
@@ -630,8 +658,7 @@ const createDepartments = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { schoolId, facultyId } = req.params;
-        const { departments } = req.body; // Expecting an array of department names
+        const { departments, schoolId, facultyId } = req.body; // Expecting an array of department names, school id, and faculty id
         const userId = req.user?._id;
         if (!userId || !(0, isSystemOwner_1.isSystemOwner)(userId)) {
             res.status(401).json({ error: "Unauthorized access", status: false });
@@ -953,8 +980,7 @@ const createCourses = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { schoolId, facultyId, departmentId } = req.params;
-        const { courses } = req.body;
+        const { courses, schoolId, facultyId, departmentId } = req.body;
         const userId = req.user?._id;
         if (!userId || !(0, isSystemOwner_1.isSystemOwner)(userId)) {
             res.status(401).json({ error: "Unauthorized access", status: false });
@@ -1303,3 +1329,81 @@ const getCourseById = async (req, res) => {
     }
 };
 exports.getCourseById = getCourseById;
+// SCHOOL ANALYTICS
+const schoolAnalytics = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId || !mongoose_1.default.Types.ObjectId.isValid(userId)) {
+            res.status(401).json({ error: "Unauthorized or invalid user ID", status: false });
+            return;
+        }
+        // Fetch user and populate roles
+        const user = await user_model_1.User.findById(userId).populate("roles");
+        if (!user) {
+            res.status(404).json({ error: "User not found", status: false });
+            return;
+        }
+        // Check if the user is a system owner
+        if (!(0, isSystemOwner_1.isSystemOwner)(userId)) {
+            res.status(403).json({ error: "Only system owners can access school analytics", status: false });
+            return;
+        }
+        // Check user permissions
+        const hasPermission = user.roles.some((role) => role.permissions.includes("read_school_analytics"));
+        if (!hasPermission) {
+            res.status(403).json({ error: "You do not have permission to access school analytics", status: false });
+            return;
+        }
+        const schools = await school_model_1.default.find();
+        const users = await user_model_1.User.find();
+        let totalFaculties = 0;
+        let totalDepartments = 0;
+        let totalCourses = 0;
+        const schoolBreakdown = schools.map((school) => {
+            const facultyCount = school.faculties?.length || 0;
+            let departmentCount = 0;
+            let courseCount = 0;
+            for (const faculty of school.faculties || []) {
+                departmentCount += faculty.departments?.length || 0;
+                for (const department of faculty.departments || []) {
+                    courseCount += department.courses?.length || 0;
+                }
+            }
+            totalFaculties += facultyCount;
+            totalDepartments += departmentCount;
+            totalCourses += courseCount;
+            return {
+                schoolId: school.schoolId,
+                name: school.name,
+                code: school.code,
+                faculties: facultyCount,
+                departments: departmentCount,
+                courses: courseCount,
+            };
+        });
+        // Count verified and active users
+        const totalApprovedUsers = users.filter((user) => user.verified === true).length;
+        const totalActiveUsers = users.filter((user) => user.emailVerified === true).length;
+        const totalLoggedUsers = users.filter((user) => user.emailVerified === false).length;
+        res.status(200).json({
+            message: "School analytics retrieved successfully",
+            status: true,
+            data: {
+                totalSchools: schools.length,
+                totalUsers: users.length,
+                totalFaculties,
+                totalDepartments,
+                totalCourses,
+                totalApprovedUsers,
+                totalActiveUsers,
+                totalLoggedUsers,
+                breakdown: schoolBreakdown,
+            },
+        });
+    }
+    catch (error) {
+        console.error("Error fetching school analytics:", error);
+        res.status(500).json({ error: "Internal server error", status: false });
+    }
+};
+exports.schoolAnalytics = schoolAnalytics;

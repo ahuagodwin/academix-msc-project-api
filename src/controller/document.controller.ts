@@ -14,6 +14,7 @@ export const createFile = async (req: AuthenticatedRequest, res: Response): Prom
 
   try {
     const userId = req.user?._id;
+    console.log("File received:", req.file); 
     if (!userId) {
       await session.abortTransaction();
       res.status(401).json({ success: false, message: "Unauthorized access" });
@@ -43,7 +44,8 @@ export const createFile = async (req: AuthenticatedRequest, res: Response): Prom
       return;
     }
 
-    const { originalname, mimetype, size, filename } = req.file; // `filename` comes from multer's `diskStorage`
+    const { originalname, mimetype, size, filename } = req.file; 
+    console.log("File uploaded:", filename);
 
     // Step 1: Validate File Extension
     const allowedExtensions = ["png", "jpeg", "jpg", "fig", "docx", "doc", "pdf", "xls", "xlsx", "mp4", "pptx"];
