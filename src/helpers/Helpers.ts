@@ -202,7 +202,8 @@ export const paginateResults = (totalRecords: number, page: number, limit: numbe
     totalRecords,
     currentPage: page,
     totalPages,
-    nextPage: page < totalPages ? page + 1 : null,
+    nextPage: page < totalPages ? page + 1 : null, 
+    previousPage: page > 1 ? page - 1 : null,
   };
 };
 

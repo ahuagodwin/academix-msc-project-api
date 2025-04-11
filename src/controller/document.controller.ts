@@ -8,8 +8,6 @@ import { isSystemOwner } from "../middlewares/isSystemOwner";
 import { deleteFileFromStorage, uploadFileToStorage } from "../helpers/storage";
 import { buildQuery, formatStorageSize, paginate, paginateResults, parseStorageSize } from "../helpers/Helpers";
 
-
-
 export const createFile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -280,7 +278,7 @@ export const getAllFiles = async (req: AuthenticatedRequest, res: Response): Pro
     
         // applying pagination and filters
         const { pageNumber, limitNumber, skip } = paginate(page, limit);
-        const query = buildQuery(filters, ["name", "userId.email"]);
+        const query = buildQuery(filters, ["name"]);
     
         const totalRecords = await File.countDocuments(query);
 

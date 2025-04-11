@@ -1,4 +1,4 @@
-import { IFileShare, UserPermission } from "../types/types";
+import { IFileShare, SharePermission } from "../types/types";
 import mongoose, { Schema } from "mongoose";
 
 
@@ -6,12 +6,11 @@ const FileShareSchema = new Schema<IFileShare>(
   {
     sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
     recipients: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    file: { type: Schema.Types.ObjectId, ref: "File", required: true },
-    groupId: { type: Schema.Types.ObjectId, ref: "Group", default: null },
+    file: [{ type: Schema.Types.ObjectId, ref: "File", required: true }],
+    groupId: [{ type: Schema.Types.ObjectId, ref: "Group", default: null }],
     permissions: {
       type: [String],
-      enum: [UserPermission.READ, UserPermission.UPDATE, UserPermission.DOWNLOAD, UserPermission.DELETE],
-      default: [UserPermission.READ],
+      enum: [SharePermission.READ, SharePermission.UPDATE, SharePermission.DOWNLOAD, SharePermission.DELETE],
     },
   },
   { timestamps: true }

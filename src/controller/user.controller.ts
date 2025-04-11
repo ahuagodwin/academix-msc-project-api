@@ -3,6 +3,7 @@ import { NextFunction, Response } from "express";
 import mongoose from "mongoose";
 import asyncHandler from "express-async-handler";
 import { User } from "../models/user.model";
+import { buildQuery, paginate, paginateResults } from "../helpers/Helpers";
 
 export const getAllUsers = asyncHandler(
     async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -41,9 +42,21 @@ export const getAllUsers = asyncHandler(
           });
           return;
         }
+           // extracting query parameters
+                    const { page, limit, ...filters } = req.query;
+                
+                    // applying pagination and filters
+                    const { pageNumber, limitNumber, skip } = paginate(page, limit);
+                    const query = buildQuery(filters, ["firstName", "lastName"]);
+                
+                    const totalRecords = await User.countDocuments(query);
   
         // Fetch all users
-        const users = await User.find()
+        const users = await User.find(query)
+          .sort({ createdAt: -1})
+          .skip(skip)
+          .limit(limitNumber)
+          .select("-__v")
           .populate("roles", "name description")
           .populate("school", "name")
           .populate("wallet", "balance currency")
@@ -60,6 +73,7 @@ export const getAllUsers = asyncHandler(
           message: "Users retrieved successfully.",
           count: users.length,
           data: users,
+          pagination: paginateResults(totalRecords, pageNumber, limitNumber),
         });
   
       } catch (error) {

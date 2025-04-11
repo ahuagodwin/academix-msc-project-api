@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { isSystemOwner } from "../middlewares/isSystemOwner";
 import { sendNotification } from "../email/notification";
 import GroupRequest from "../models/groupRequest.model";
+import { buildQuery, paginate, paginateResults } from "../helpers/Helpers";
 
 // Create a Group**
 export const createGroup = async (req: AuthenticatedRequest, res: Response):Promise<void> => {
@@ -272,16 +273,30 @@ export const getUserGroups = async (req: AuthenticatedRequest, res: Response): P
      return 
     }
 
+         // extracting query parameters
+            const { page, limit, ...filters } = req.query;
+        
+            // applying pagination and filters
+            const { pageNumber, limitNumber, skip } = paginate(page, limit);
+            const query = buildQuery(filters, ["name"]);
+        
+            const totalRecords = await Group.countDocuments(query);
+
     // Fetch groups where the user is a member or owner
-    const groups = await Group.find({ members: userId })
-      .populate("owner", "name email") // Fetch owner details
-      .populate("members", "name email") // Fetch member details
+    const groups = await Group.find({ members: userId, ...query })
+    .sort({ createdAt: -1})
+    .skip(skip)
+      .limit(limitNumber)
+      .select("-__v")
+      .populate("owner", "email firstName lastName") // Fetch owner details
+      .populate("members", "firstName lastName email") // Fetch member details
       .lean();
 
     res.status(200).json({
       success: true,
       message: "User groups retrieved successfully",
       data: groups,
+      pagination: paginateResults(totalRecords, pageNumber, limitNumber),
     });
   } catch (error) {
     console.error("Error fetching user groups:", error);

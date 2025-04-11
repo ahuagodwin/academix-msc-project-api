@@ -7,80 +7,95 @@ import Group from "../models/group.model";
 import { sendNotification } from "../email/notification";
 
 
-// Share File to User or Group**
-export const shareFile = async (req: AuthenticatedRequest, res: Response):Promise<void> => {
+// Share multiple Files to Users or Groups
+export const shareFile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { fileId, recipients, groupId, permissions } = req.body;
+    const { fileIds, recipients, groupIds, permissions } = req.body;
     const senderId = req.user?._id;
 
-    if (!fileId || (!recipients && !groupId)) {
-      res.status(400).json({ message: "File ID and either recipients or group ID are required." });
-      return 
+    if ((!fileIds || fileIds.length === 0) || (!recipients && (!groupIds || groupIds.length === 0))) {
+      res.status(400).json({
+        success: false,
+        message: "At least one file and one recipient or group ID must be provided."
+      });
+      return;
     }
 
-    const file = await File.findById(fileId);
-    if (!file) {
-      res.status(404).json({ success: false, message: "File not found" });
-      return 
+    // Validate files
+    const files = await File.find({ _id: { $in: fileIds } });
+    if (files.length !== fileIds.length) {
+      res.status(404).json({ success: false, message: "One or more files not found." });
+      return;
     }
 
-     // Ensure sender is the file owner or has permission
-     if (String(file.userId) !== String(senderId)) {
-        res.status(403).json({ success: false, message: "You do not have permission to share this file." });
-        return 
-      }
+    // Ensure sender owns all files
+    const unauthorizedFiles = files.filter(file => String(file.userId) !== String(senderId));
+    if (unauthorizedFiles.length > 0) {
+      res.status(403).json({
+        success: false,
+        message: "You do not have permission to share one or more files."
+      });
+      return;
+    }
 
-        //  Check recipients (if provided)
+    // Validate recipients
     let validRecipients: string[] = [];
     if (recipients?.length) {
       const users = await User.find({ _id: { $in: recipients } }, "_id");
       validRecipients = users.map(user => String(user._id));
-
       if (validRecipients.length !== recipients.length) {
         res.status(400).json({ success: false, message: "Some recipients do not exist." });
-        return 
+        return;
       }
     }
 
-    // Check group (if provided)
-    let validGroupId: string | null = null;
-    if (groupId) {
-      const groupExists = await Group.findById(groupId);
-      if (!groupExists) {
-         res.status(404).json({ success: false, message: "Group not found." });
-         return
+    // Validate groups
+    let validGroupIds: string[] = [];
+    if (groupIds?.length) {
+      const groups = await Group.find({ _id: { $in: groupIds } }, "_id");
+      validGroupIds = groups.map(group => String(group._id));
+      if (validGroupIds.length !== groupIds.length) {
+        res.status(404).json({ success: false, message: "One or more groups not found." });
+        return;
       }
-      validGroupId = groupId;
     }
 
-    const newShare = new FileShare({
+    const createdShares = [];
+
+    for (const file of files) {
+      const newShare = new FileShare({
         sender: senderId,
+        file: file._id,
         recipients: validRecipients,
-        file: fileId,
-        groupId: validGroupId,
-        permissions: permissions || [],
+        groupId: validGroupIds.length > 0 ? validGroupIds : undefined,
+        permissions: permissions || []
       });
-  
-      await newShare.save();
 
-       // Send notifications to recipients
-    if (validRecipients.length > 0) {
-        validRecipients.forEach(async (recipientId) => {
-          await sendNotification({
-            userId: recipientId,
-            subject: "New File Shared",
-            message: `You have received a new file shared with you: <br><b>${file.name}</b>`,
-            type: "share",
-          });
+      await newShare.save();
+      createdShares.push(newShare);
+
+      // Send notifications
+      for (const recipientId of validRecipients) {
+        await sendNotification({
+          userId: recipientId,
+          subject: "New File Shared",
+          message: `You have received a new file: <br><b>${file.name}</b>`,
+          type: "share",
         });
       }
+    }
 
-    res.status(201).json({ success: true, message: "File shared successfully", data: newShare });
+    res.status(201).json({
+      success: true,
+      message: "Files shared successfully",
+      data: createdShares,
+    });
   } catch (error) {
-    console.error("Error sharing file:", error);
+    console.error("Error sharing files:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 export const updateShareFile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {

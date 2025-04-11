@@ -73,6 +73,14 @@ export enum UserPermission {
     DOWNLOAD = "download_file"
 }
 
+
+export enum SharePermission {
+  CREATE = "create_shared_file",
+  READ = "read_shared_file",
+  UPDATE = "update_shared_file",
+  DELETE = "delete_shared_file",
+  DOWNLOAD = "download_shared_file"
+}
 export interface RolePermissions {
   [key: string]: string[]; 
 }
