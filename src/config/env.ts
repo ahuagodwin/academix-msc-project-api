@@ -29,7 +29,10 @@ export const {
   ACADEMIX_FLW_WEB_HOOK_URL,
   FLW_TRANSFER_API_URL,
   BACKEND_URL_LIVE,
-  METHODS
+  METHODS,
+  CLOUDINARY_TYPE,
+  CLOUDINARY_FOLDER,
+  CLOUDINARY_RESOURCE_TYPE,
 } = process.env;
 
 if (
@@ -59,7 +62,10 @@ if (
   !ACADEMIX_FLW_WEB_HOOK_URL ||
   !FLW_TRANSFER_API_URL || 
   !BACKEND_URL_LIVE ||
-  !METHODS?.split(',')
+  !CLOUDINARY_TYPE ||
+  !CLOUDINARY_FOLDER ||
+  !CLOUDINARY_RESOURCE_TYPE ||
+  !METHODS
 ) {
   throw new Error("Missing environment variables");
 }

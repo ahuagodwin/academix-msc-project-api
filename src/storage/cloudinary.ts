@@ -1,4 +1,4 @@
-import { CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME } from "../config/env";
+import { CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME, CLOUDINARY_FOLDER, CLOUDINARY_TYPE } from "../config/env";
 import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
 
@@ -9,15 +9,18 @@ cloudinary.config({
   cloud_name: CLOUDINARY_CLOUD_NAME,
   api_key: CLOUDINARY_API_KEY,
   api_secret: CLOUDINARY_API_SECRET,
+  secure: true
 });
 
-// Function to upload file
+// function to upload file
 export const uploadFileToCloudinary = async (filePath: string): Promise<string> => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       resource_type: "auto",
-      folder: 'academix', 
+      type: CLOUDINARY_TYPE,
+      folder: CLOUDINARY_FOLDER, 
     });
+
     return result.secure_url;
   } catch (error) {
     console.error("Cloudinary Upload Error:", error);
@@ -25,11 +28,10 @@ export const uploadFileToCloudinary = async (filePath: string): Promise<string> 
   }
 };
  
-// Function to delete file
+// function to delete file
 export const deleteFileFromCloudinary = async (fileUrl: string): Promise<void> => {
   try {
-    // Extract public ID correctly, handling cases where URL has file extensions or extra slashes
-    const publicId = fileUrl.split("/").slice(-2, -1).join("");  // Get the right part for public ID
+    const publicId = fileUrl.split("/").slice(-2, -1).join(""); 
     if (publicId) {
       await cloudinary.uploader.destroy(publicId);
       console.log(`File deleted from Cloudinary: ${fileUrl}`);

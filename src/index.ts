@@ -21,7 +21,7 @@ app.use(cors({
     origin: [ `${FRONTEND_URL_LOCAL}`, `${FRONTEND_URL_LIVE}`, `${BACKEND_URL_LOCAL}`, `${BACKEND_URL_LIVE}`, ],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: METHODS,
+    methods: METHODS?.split(','),
 }));
 
 app.use(bodyParser.json());
