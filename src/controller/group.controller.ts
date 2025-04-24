@@ -76,60 +76,69 @@ export const createGroup = async (req: AuthenticatedRequest, res: Response):Prom
   };
   
 
-  export const updateGroup = async (req: AuthenticatedRequest, res: Response):Promise<void> => {
+  export const updateGroup = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const session = await mongoose.startSession();
     session.startTransaction();
-
+    
     try {
       const { groupId } = req.params;
       const { name, addMembers, removeMembers } = req.body;
       const ownerId = req.user?._id;
-  
+      
       // Find the group
       const group = await Group.findById(groupId);
       if (!group) {
         await session.abortTransaction();
         res.status(404).json({ success: false, message: "Group not found" });
-        return 
+        return;
       }
-  
+      
       // Ensure only the owner can update the group
       if (String(group.owner) !== String(ownerId)) {
         await session.abortTransaction();
         res.status(403).json({ success: false, message: "You do not have permission to update this group." });
-        return 
+        return;
       }
-  
+      
       // Update group name if provided
       if (name) group.name = name;
-  
-      // Add new members
+      
+      // Add new members (only if they don't already exist)
       if (addMembers && Array.isArray(addMembers) && addMembers.length > 0) {
-        const validUsers = await User.find({ _id: { $in: addMembers } }).session(session);
-        if (validUsers.length !== addMembers.length) {
+        // Get unique member IDs that don't already exist in the group
+        const newMembersToAdd = addMembers.filter(
+          member => !group.members.includes(member)
+        );
+        
+        if (newMembersToAdd.length > 0) {
+          // Verify these users exist
+          const validUsers = await User.find({ _id: { $in: newMembersToAdd } }).session(session);
+          if (validUsers.length !== newMembersToAdd.length) {
             await session.abortTransaction();
-          res.status(400).json({ success: false, message: "Some members do not exist" });
-          return 
+            res.status(400).json({ success: false, message: "Some members do not exist" });
+            return;
+          }
+          
+          // Add the new members to the group
+          group.members = [...group.members, ...newMembersToAdd];
         }
-        group.members = [...new Set([...group.members, ...addMembers])];
       }
-  
+      
       // Remove members
       if (removeMembers && Array.isArray(removeMembers) && removeMembers.length > 0) {
         group.members = group.members.filter((member) => !removeMembers.includes(String(member)));
       }
-  
+      
       await group.save({ session });
       await session.commitTransaction();
-      session.endSession();
-  
+      
       res.status(200).json({ success: true, message: "Group updated successfully", data: group });
     } catch (error) {
       console.error("Error updating group:", error);
       await session.abortTransaction();
       res.status(500).json({ success: false, message: "Internal server error" });
     } finally {
-        session.endSession();
+      session.endSession();
     }
   };
   
@@ -141,8 +150,8 @@ export const addUsersToGroup = async (req: AuthenticatedRequest, res: Response):
   
     try {
         const { groupId } = req.params;
-      const { userIds } = req.body;
-      const ownerId = req.user?._id;
+        const { userIds } = req.body;
+        const ownerId = req.user?._id;
   
       if (!Array.isArray(userIds) || userIds.length === 0) {
         await session.abortTransaction();
