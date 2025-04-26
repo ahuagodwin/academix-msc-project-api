@@ -5,6 +5,6 @@ import { Router } from "express";
 const fundWalletRouter = Router();
 
 fundWalletRouter.post("/wallet/", authProtect, fundWallerService.fundWallet);
-fundWalletRouter.post("/verify-payment/:transactionId/", authProtect, fundWallerService.verifyFlutterwavePayment);
+fundWalletRouter.get("/verify-payment/:transactionId/", authProtect, fundWallerService.verifyFlutterwavePayment);
 
 export { fundWalletRouter };

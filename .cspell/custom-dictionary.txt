@@ -1,5 +1,6 @@
 # Custom Dictionary Words
 alphanum
+Chiscript
 excelx
 flutterwave
 FLWSECK

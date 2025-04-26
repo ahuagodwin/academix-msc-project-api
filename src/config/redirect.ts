@@ -1,0 +1,16 @@
+import { DEPLOYMENT_PLATFORM, FUNDING_VERIFY_URL_LIVE_NETLIFY, FUNDING_VERIFY_URL_LIVE_VERCEL, FUNDING_VERIFY_URL_LOCAL, NODE_ENV } from "./env";
+
+
+
+export const getRedirectUrl = () => {
+    if (NODE_ENV === 'production') {
+      if (DEPLOYMENT_PLATFORM === 'NETLIFY') {
+        return FUNDING_VERIFY_URL_LIVE_NETLIFY;
+      }
+      if (DEPLOYMENT_PLATFORM === 'VERCEL') {
+        return FUNDING_VERIFY_URL_LIVE_VERCEL;
+      }
+    }
+    return FUNDING_VERIFY_URL_LIVE_VERCEL || FUNDING_VERIFY_URL_LOCAL;
+  };
+  

@@ -263,6 +263,7 @@ export enum StorageSize {
     passwordResetToken?: string;
     passwordResetExpires?: Date;
     createPasswordResetToken(): Promise<string>;
+    company_name: string
 }
 
 

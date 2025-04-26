@@ -99,6 +99,8 @@ export const getGeneralAnalytics = async (req: AuthenticatedRequest, res: Respon
 
     // ===== Financial Analytics =====
     // Get overall financial summary
+    await FinancialSummary.updateSummary();
+
     const financialSummary = await FinancialSummary.findOne() || {
       totalInflowAmount: 0,
       totalOutflowAmount: 0,
