@@ -4,5 +4,5 @@ import { Router } from "express";
 
 const analyticsRouter = Router();
 
-analyticsRouter.get("/analytics/", authProtect,  notifyService.getGeneralAnalytics);
+analyticsRouter.get("/analytics/", authProtect, notifyService.getGeneralAnalytics);
 export { analyticsRouter };
