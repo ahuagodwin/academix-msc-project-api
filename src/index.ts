@@ -37,9 +37,9 @@ const server = http.createServer(app)
 
 app.use("/api/v1/auth", Routes.authRouter);
 app.use("/api/v1/school", Routes.schoolRouter);
-app.use("/api/v1/teacher", Routes.teacherRouter);
+app.use("/api/v1/teacher", Routes.teacherRouter); //TODO: remember to work on the teacher controller using the user model on V2 SPRINT
 app.use("/api/v1/storage", Routes.storageRouter);
-app.use("/api/v1/student", Routes.studentRouter); // TODO: remember to work on the student controller using the user model
+app.use("/api/v1/student", Routes.studentRouter); // TODO: remember to work on the student controller using the user model on V2 SPRINT
 app.use("/api/v1/subscription", Routes.subscriptionRouter);
 app.use("/api/v1/fund-wallet", Routes.fundWalletRouter);
 app.use("/api/v1/document", Routes.documentRouter);
@@ -50,6 +50,9 @@ app.use("/api/v1/notifications", Routes.notificationRouter);
 app.use("/api/v1/payout", Routes.payoutRouter);
 app.use("/api/v1/finance", Routes.financialSummaryRouter)
 app.use("/api/v1/user", Routes.userRouter);
+app.use("/api/v1/transactions", Routes.transactionRouter);
+app.use("/api/v1/wallet", Routes.walletRouter);
+app.use("/api/v1/analytics", Routes.analyticsRouter)
 
 
 // Error handling middleware

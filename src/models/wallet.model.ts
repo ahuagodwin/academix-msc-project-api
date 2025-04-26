@@ -46,7 +46,7 @@ const walletSchema: Schema<IWallet & Document> = new Schema(
       type: String,
       default: "NGN",
     },
-    transactions: [transactionSchema], // Explicitly defining transactions
+    transactions: [transactionSchema],
   },
   {
     timestamps: true,

@@ -267,14 +267,23 @@ export const getAllFiles = async (req: AuthenticatedRequest, res: Response): Pro
       return;
     }
 
-    if (!isSystemOwner(userId)) {
-      res.status(401).json({ success: false, message: "You do not have permission to view all files" });
-      return;
-    }
+    // if (!isSystemOwner(userId)) {
+    //   res.status(401).json({ success: false, message: "You do not have permission to view all files" });
+    //   return;
+    // }
 
-    // Check user permission
+    // // Check user permission
+    // const hasPermission = user.roles.some((role) => role.permissions.includes("read_file"));
+    // if (!hasPermission) {
+    //   res.status(403).json({ error: "You're not permitted to view all files", status: false });
+    //   return;
+    // }
+
+    // Check if user is either a system owner or has read_file permission
+    const isOwner = isSystemOwner(userId);
     const hasPermission = user.roles.some((role) => role.permissions.includes("read_file"));
-    if (!hasPermission) {
+
+    if (!isOwner && !hasPermission) {
       res.status(403).json({ error: "You're not permitted to view all files", status: false });
       return;
     }

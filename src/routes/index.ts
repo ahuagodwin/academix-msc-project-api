@@ -1,3 +1,4 @@
+import { analyticsRouter } from "./analytics.routes";
 import { authRouter } from "./auth.routes";
 import { documentRouter } from "./document.routes";
 import { financialSummaryRouter } from "./financialSummary.routes";
@@ -12,7 +13,9 @@ import { storageRouter } from "./storage.routes";
 import { studentRouter } from "./student.routes";
 import { subscriptionRouter } from "./subscription.routes";
 import { teacherRouter } from "./teacher.routes";
+import { transactionRouter } from "./transactions.routes";
 import { userRouter } from "./user.routes";
+import { walletRouter } from "./wallet.routes";
 
 
 export const Routes = {
@@ -30,5 +33,8 @@ export const Routes = {
     notificationRouter,
     payoutRouter,
     financialSummaryRouter,
-    userRouter
+    userRouter,
+    transactionRouter,
+    walletRouter,
+    analyticsRouter
 }
