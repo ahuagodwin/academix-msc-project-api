@@ -13,5 +13,9 @@ const TransactionSchema = new mongoose_1.default.Schema({
     status: { type: String, enum: ["pending", "completed", "failed"], default: "pending" },
     paymentGateway: { type: String, enum: ["flutterwave"], required: true },
     createdAt: { type: Date, default: Date.now },
+    description: { type: String },
+    paymentMethod: { type: String },
+    transactionType: { type: String },
+    channel: { type: String },
 });
 exports.Transaction = mongoose_1.default.model("Transaction", TransactionSchema);

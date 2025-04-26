@@ -10,6 +10,7 @@ const user_model_1 = require("../models/user.model");
 const transactions_model_1 = require("../models/transactions.model");
 const env_1 = require("../config/env");
 const wallet_model_1 = __importDefault(require("../models/wallet.model"));
+const redirect_1 = require("../config/redirect");
 const fundWallet = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
@@ -33,11 +34,11 @@ const fundWallet = async (req, res) => {
         // Generate transaction reference
         const transactionReference = `ACADEMIX-${Date.now()}-${userId}`;
         // Initiate payment request with Flutterwave
-        const response = await axios_1.default.post("https://api.flutterwave.com/v3/payments", {
+        const response = await axios_1.default.post(`${env_1.FLW_PAYMENT_API_URL}`, {
             tx_ref: transactionReference,
             amount,
             currency: currency || "NGN",
-            redirect_url: `${env_1.FRONTEND_URL_LOCAL}/wallet/success`,
+            redirect_url: (0, redirect_1.getRedirectUrl)(),
             customer: {
                 email: user.email,
                 name: user.firstName + " " + user.lastName,
@@ -65,6 +66,10 @@ const fundWallet = async (req, res) => {
             currency,
             status: "pending",
             paymentGateway: "flutterwave",
+            paymentMethod: response.data.data.payment_type,
+            description: `Wallet funding by ${user?.firstName} ${user.lastName}`,
+            channel: "web",
+            transactionType: "deposit",
         });
         await newTransaction.save({ session });
         await session.commitTransaction();
@@ -89,12 +94,23 @@ const verifyFlutterwavePayment = async (req, res) => {
     session.startTransaction();
     try {
         const { transactionId } = req.params; // Get transaction ID from Flutterwave callback
+        const userId = req.user?._id;
+        if (!userId) {
+            res.status(401).json({ success: false, message: "Unauthorized access" });
+            return;
+        }
+        // Fetch user details
+        const user = await user_model_1.User.findById(userId).session(session);
+        if (!user) {
+            res.status(404).json({ success: false, message: "User not found" });
+            return;
+        }
         if (!transactionId) {
             res.status(400).json({ success: false, message: "Transaction ID is required" });
             return;
         }
         // Verify transaction with Flutterwave
-        const response = await axios_1.default.get(`https://api.flutterwave.com/v3/transactions/${transactionId}/verify`, {
+        const response = await axios_1.default.get(`${env_1.FLW_TRANSACTION_API_URL}${transactionId}/verify`, {
             headers: { Authorization: `Bearer ${env_1.FLW_SECRET_KEY}` },
         });
         const transactionData = response.data?.data;
@@ -123,17 +139,21 @@ const verifyFlutterwavePayment = async (req, res) => {
             return;
         }
         if (transactionData.status === "successful") {
+            // Update transaction with details from Flutterwave
+            transaction.status = "completed";
+            transaction.paymentMethod = transactionData.payment_type || transaction.paymentMethod;
+            transaction.description = `Wallet funding by ${user?.firstName}  ${user?.lastName}`;
+            transaction.channel = transactionData.auth_model?.toLowerCase() || "web";
+            transaction.transactionType = "deposit";
             // If transaction is successful, update wallet balance
             wallet.balance += transactionData.amount;
             wallet.transactions.push({
                 type: "deposit",
                 amount: transactionData.amount,
-                description: "Wallet funding via Flutterwave",
+                description: `Wallet funding via ${transactionData.payment_type || "Flutterwave"}`,
                 timestamp: new Date(),
                 status: "completed",
             });
-            // Mark transaction as successful
-            transaction.status = "completed";
             await wallet.save({ session });
             await transaction.save({ session });
             await session.commitTransaction();
@@ -143,12 +163,15 @@ const verifyFlutterwavePayment = async (req, res) => {
             });
         }
         else {
-            // If payment verification failed, mark transaction and wallet transaction as failed
+            // Update transaction with details from Flutterwave for failed transactions
             transaction.status = "failed";
+            transaction.paymentMethod = transactionData.payment_type || transaction.paymentMethod;
+            transaction.description = `Failed wallet funding via ${transactionData.payment_type || "Flutterwave"}`;
+            transaction.channel = transactionData.auth_model?.toLowerCase() || "web";
             wallet.transactions.push({
                 type: "deposit",
                 amount: transactionData.amount,
-                description: "Wallet funding failed via Flutterwave",
+                description: `Failed wallet funding via ${transactionData.payment_type || "Flutterwave"}`,
                 timestamp: new Date(),
                 status: "failed",
             });

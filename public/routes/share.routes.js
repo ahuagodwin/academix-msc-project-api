@@ -41,6 +41,6 @@ const shareRouter = (0, express_1.Router)();
 exports.shareRouter = shareRouter;
 shareRouter.post("/file-send/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("create_file"), shareService.shareFile);
 shareRouter.put("/file-share/:shareId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("update_file"), shareService.updateShareFile);
-shareRouter.delete("/file-share/:shareId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("delete_file"), shareService.updateShareFile);
+shareRouter.delete("/file-share/:shareId/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("delete_file"), shareService.deleteShareFile);
 shareRouter.get("/received-files/", authorized_md_1.authProtect, (0, authorized_md_1.authorize)("read_file"), shareService.getSharedFiles);
 shareRouter.post("/request-file-permissions/", authorized_md_1.authProtect, shareService.requestFilePermissions);

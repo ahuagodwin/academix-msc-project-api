@@ -74,7 +74,7 @@ const walletSchema = new mongoose_1.Schema({
         type: String,
         default: "NGN",
     },
-    transactions: [transactionSchema], // Explicitly defining transactions
+    transactions: [transactionSchema],
 }, {
     timestamps: true,
 });

@@ -93,15 +93,21 @@ const updateGroup = async (req, res) => {
         // Update group name if provided
         if (name)
             group.name = name;
-        // Add new members
+        // Add new members (only if they don't already exist)
         if (addMembers && Array.isArray(addMembers) && addMembers.length > 0) {
-            const validUsers = await user_model_1.User.find({ _id: { $in: addMembers } }).session(session);
-            if (validUsers.length !== addMembers.length) {
-                await session.abortTransaction();
-                res.status(400).json({ success: false, message: "Some members do not exist" });
-                return;
+            // Get unique member IDs that don't already exist in the group
+            const newMembersToAdd = addMembers.filter(member => !group.members.includes(member));
+            if (newMembersToAdd.length > 0) {
+                // Verify these users exist
+                const validUsers = await user_model_1.User.find({ _id: { $in: newMembersToAdd } }).session(session);
+                if (validUsers.length !== newMembersToAdd.length) {
+                    await session.abortTransaction();
+                    res.status(400).json({ success: false, message: "Some members do not exist" });
+                    return;
+                }
+                // Add the new members to the group
+                group.members = [...group.members, ...newMembersToAdd];
             }
-            group.members = [...new Set([...group.members, ...addMembers])];
         }
         // Remove members
         if (removeMembers && Array.isArray(removeMembers) && removeMembers.length > 0) {
@@ -109,7 +115,6 @@ const updateGroup = async (req, res) => {
         }
         await group.save({ session });
         await session.commitTransaction();
-        session.endSession();
         res.status(200).json({ success: true, message: "Group updated successfully", data: group });
     }
     catch (error) {

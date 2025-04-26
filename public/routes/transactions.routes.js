@@ -33,11 +33,12 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fundWalletRouter = void 0;
+exports.transactionRouter = void 0;
 const authorized_md_1 = require("../middlewares/authorized.md");
-const fundWallerService = __importStar(require("../controller/fundwallet.controller"));
 const express_1 = require("express");
-const fundWalletRouter = (0, express_1.Router)();
-exports.fundWalletRouter = fundWalletRouter;
-fundWalletRouter.post("/wallet/", authorized_md_1.authProtect, fundWallerService.fundWallet);
-fundWalletRouter.get("/verify-payment/:transactionId/", authorized_md_1.authProtect, fundWallerService.verifyFlutterwavePayment);
+const transactionService = __importStar(require("../controller/transactions.controller"));
+const transactionRouter = (0, express_1.Router)();
+exports.transactionRouter = transactionRouter;
+// Document routes
+transactionRouter.get("/all/", authorized_md_1.authProtect, transactionService.getAllTransactions);
+transactionRouter.get("/user/transaction/:userId/", (0, authorized_md_1.authorize)("read_user_transactions"), transactionService.getUserTransactions);

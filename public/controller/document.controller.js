@@ -12,12 +12,12 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const isSystemOwner_1 = require("../middlewares/isSystemOwner");
 const storage_1 = require("../helpers/storage");
 const Helpers_1 = require("../helpers/Helpers");
+const cloudinary_1 = require("../storage/cloudinary");
 const createFile = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
     try {
         const userId = req.user?._id;
-        console.log("File received:", req.file);
         if (!userId) {
             await session.abortTransaction();
             res.status(401).json({ success: false, message: "Unauthorized access" });
@@ -79,13 +79,16 @@ const createFile = async (req, res) => {
         storagePlan.status =
             remainingStorage <= 0 ? types_1.StorageStatus.exhausted : remainingStorage < 10 * 1024 * 1024 ? types_1.StorageStatus.low : types_1.StorageStatus.active;
         await storagePlan.save({ session });
+        // Step 6: Upload file to Cloudinary
+        const filePath = req.file.path;
+        const cloudinaryUrl = await (0, cloudinary_1.uploadFileToCloudinary)(filePath);
         // Step 6: Save File
         const newFile = new file_model_1.default({
             userId: userId,
             name: originalname,
             fileType: mimetype,
             size,
-            storagePath: `/uploads/${filename}`,
+            storagePath: cloudinaryUrl,
             access: "private",
             tags: [],
         });
@@ -234,13 +237,20 @@ const getAllFiles = async (req, res) => {
             res.status(404).json({ error: "User not found", status: false });
             return;
         }
-        if (!(0, isSystemOwner_1.isSystemOwner)(userId)) {
-            res.status(401).json({ success: false, message: "You do not have permission to view all files" });
-            return;
-        }
-        // Check user permission
+        // if (!isSystemOwner(userId)) {
+        //   res.status(401).json({ success: false, message: "You do not have permission to view all files" });
+        //   return;
+        // }
+        // // Check user permission
+        // const hasPermission = user.roles.some((role) => role.permissions.includes("read_file"));
+        // if (!hasPermission) {
+        //   res.status(403).json({ error: "You're not permitted to view all files", status: false });
+        //   return;
+        // }
+        // Check if user is either a system owner or has read_file permission
+        const isOwner = (0, isSystemOwner_1.isSystemOwner)(userId);
         const hasPermission = user.roles.some((role) => role.permissions.includes("read_file"));
-        if (!hasPermission) {
+        if (!isOwner && !hasPermission) {
             res.status(403).json({ error: "You're not permitted to view all files", status: false });
             return;
         }

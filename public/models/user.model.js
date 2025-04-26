@@ -72,6 +72,7 @@ const userSchema = new mongoose_1.Schema({
     assignedFaculty: [{ type: mongoose_1.default.Schema.Types.ObjectId, required: false, trim: true }],
     assignedDepartment: [{ type: mongoose_1.default.Schema.Types.ObjectId, required: false, trim: true }],
     assignedCourses: [{ type: mongoose_1.default.Schema.Types.ObjectId, required: false, trim: true }],
+    company_name: { type: String, default: "Chiscript Technologies Solutions" },
     verified: { type: Boolean, default: false },
     emailVerified: {
         type: Boolean,

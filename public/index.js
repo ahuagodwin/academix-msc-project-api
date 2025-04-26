@@ -23,7 +23,7 @@ app.use((0, cors_1.default)({
     origin: [`${env_1.FRONTEND_URL_LOCAL}`, `${env_1.FRONTEND_URL_LIVE}`, `${env_1.BACKEND_URL_LOCAL}`, `${env_1.BACKEND_URL_LIVE}`,],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: env_1.METHODS,
+    methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 app.use(body_parser_1.default.json());
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: "50mb" }));
@@ -36,9 +36,9 @@ app.use('public/uploads', express_1.default.static(path_1.default.join(__dirname
 const server = http_1.default.createServer(app);
 app.use("/api/v1/auth", routes_1.Routes.authRouter);
 app.use("/api/v1/school", routes_1.Routes.schoolRouter);
-app.use("/api/v1/teacher", routes_1.Routes.teacherRouter);
+app.use("/api/v1/teacher", routes_1.Routes.teacherRouter); //TODO: remember to work on the teacher controller using the user model on V2 SPRINT
 app.use("/api/v1/storage", routes_1.Routes.storageRouter);
-app.use("/api/v1/student", routes_1.Routes.studentRouter); // TODO: remember to work on the student controller using the user model
+app.use("/api/v1/student", routes_1.Routes.studentRouter); // TODO: remember to work on the student controller using the user model on V2 SPRINT
 app.use("/api/v1/subscription", routes_1.Routes.subscriptionRouter);
 app.use("/api/v1/fund-wallet", routes_1.Routes.fundWalletRouter);
 app.use("/api/v1/document", routes_1.Routes.documentRouter);
@@ -49,6 +49,9 @@ app.use("/api/v1/notifications", routes_1.Routes.notificationRouter);
 app.use("/api/v1/payout", routes_1.Routes.payoutRouter);
 app.use("/api/v1/finance", routes_1.Routes.financialSummaryRouter);
 app.use("/api/v1/user", routes_1.Routes.userRouter);
+app.use("/api/v1/transactions", routes_1.Routes.transactionRouter);
+app.use("/api/v1/wallet", routes_1.Routes.walletRouter);
+app.use("/api/v1/analytics", routes_1.Routes.analyticsRouter);
 // Error handling middleware
 app.use(middlewares_1.middlewares.errorHandler);
 // Start the server
