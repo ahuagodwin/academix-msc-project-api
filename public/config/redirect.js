@@ -4,10 +4,10 @@ exports.getRedirectUrl = void 0;
 const env_1 = require("./env");
 const getRedirectUrl = () => {
     if (env_1.NODE_ENV === 'production') {
-        if (env_1.DEPLOYMENT_PLATFORM_NETLIFY === 'NETLIFY') {
+        if (env_1.DEPLOYMENT_PLATFORM === 'NETLIFY') {
             return env_1.FUNDING_VERIFY_URL_LIVE_NETLIFY;
         }
-        if (env_1.DEPLOYMENT_PLATFORM_VERCEL === 'VERCEL') {
+        if (env_1.DEPLOYMENT_PLATFORM === 'VERCEL') {
             return env_1.FUNDING_VERIFY_URL_LIVE_VERCEL;
         }
     }
