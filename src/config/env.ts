@@ -42,44 +42,52 @@ export const {
   DEPLOYMENT_PLATFORM
 } = process.env;
 
-if (
-  !PORT ||
-  !NODE_ENV ||
-  !FRONTEND_URL_LOCAL ||
-  !FRONTEND_URL_LIVE ||
-  !DB_URL ||
-  !DB_PASSWORD ||
-  !DB_USERNAME ||
-  !ARCJET_SECRET_KEY ||
-  !JWT_SECRET_KEY ||
-  !JWT_EXPIRY_KEY ||
-  !BACKEND_URL_LOCAL ||
-  !SMTP_MAIL_ID ||
-  !SMTP_MAIL_PASSWORD ||
-  !JWT_REFRESH_EXPIRATION ||
-  !FLWSECK_KEY ||
-  !FLW_PUBLIC_KEY ||
-  !FLW_SECRET_KEY ||
-  !CLOUDINARY_CLOUD_NAME ||
-  !CLOUDINARY_API_KEY ||
-  !CLOUDINARY_API_SECRET ||
-  !FIREBASE_SERVICE_ACCOUNT ||
-  !FIREBASE_STORAGE_BUCKET ||
-  !NO_REPLY_EMAIL ||
-  !ACADEMIX_FLW_WEB_HOOK_URL ||
-  !FLW_TRANSFER_API_URL || 
-  !BACKEND_URL_LIVE ||
-  !CLOUDINARY_TYPE ||
-  !CLOUDINARY_FOLDER ||
-  !CLOUDINARY_RESOURCE_TYPE ||
-  !METHODS ||
-  !FUNDING_VERIFY_URL_LIVE_NETLIFY ||
-  !FUNDING_VERIFY_URL_LIVE_VERCEL ||
-  !FUNDING_VERIFY_URL_LOCAL ||
-  !DEPLOYMENT_PLATFORM ||
-  !FLW_PAYMENT_API_URL ||
-  !FLW_TRANSACTION_API_URL ||
-  !FLW_ACCOUNT_VALIDATE_URL
-) {
-  throw new Error("Missing environment variables");
+// Define required environment variables
+const requiredEnvVars = [
+  'PORT',
+  'NODE_ENV',
+  'FRONTEND_URL_LOCAL',
+  'FRONTEND_URL_LIVE',
+  'DB_URL',
+  'DB_PASSWORD',
+  'DB_USERNAME',
+  'ARCJET_SECRET_KEY',
+  'JWT_SECRET_KEY',
+  'JWT_EXPIRY_KEY',
+  'BACKEND_URL_LOCAL',
+  'SMTP_MAIL_ID',
+  'SMTP_MAIL_PASSWORD',
+  'JWT_REFRESH_EXPIRATION',
+  'FLWSECK_KEY',
+  'FLW_PUBLIC_KEY',
+  'FLW_SECRET_KEY',
+  'FLW_PAYMENT_API_URL',
+  'FLW_TRANSACTION_API_URL',
+  'FLW_ACCOUNT_VALIDATE_URL',
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET',
+  'FIREBASE_SERVICE_ACCOUNT',
+  'FIREBASE_STORAGE_BUCKET',
+  'NO_REPLY_EMAIL',
+  'ACADEMIX_FLW_WEB_HOOK_URL',
+  'FLW_TRANSFER_API_URL',
+  'BACKEND_URL_LIVE',
+  'METHODS',
+  'CLOUDINARY_TYPE',
+  'CLOUDINARY_FOLDER',
+  'CLOUDINARY_RESOURCE_TYPE',
+  'FUNDING_VERIFY_URL_LIVE_NETLIFY',
+  'FUNDING_VERIFY_URL_LIVE_VERCEL',
+  'FUNDING_VERIFY_URL_LOCAL',
+  'DEPLOYMENT_PLATFORM'
+];
+
+// Check for missing environment variables
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  const errorMessage = `Missing required environment variables: ${missingEnvVars.join(', ')}`;
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
