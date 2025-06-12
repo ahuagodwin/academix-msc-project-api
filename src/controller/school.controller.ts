@@ -816,6 +816,95 @@ export const getFacultyById = async (req: AuthenticatedRequest, res: Response): 
     }
 };
 
+// GET ALL FACULTIES CONTROLLER (NO AUTHENTICATION)
+export const getAllFacultiesPublic = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { schoolId } = req.params;
+
+        // Validate required parameter
+        if (!schoolId) {
+            res.status(400).json({ 
+                error: "School ID is required", 
+                status: false 
+            });
+            return;
+        }
+
+        // Find the school and select faculties
+        const school = await School.findById(schoolId)
+            .select('name faculties')
+            .lean() as any;
+            
+        if (!school) {
+            res.status(404).json({ 
+                error: "School not found", 
+                status: false 
+            });
+            return;
+        }
+
+        // Check if school has faculties
+        if (!school.faculties || school.faculties.length === 0) {
+            res.status(200).json({
+                message: "No faculties found in this school",
+                data: {
+                    schoolId: school._id,
+                    schoolName: school.name,
+                    faculties: [],
+                    totalFaculties: 0
+                },
+                status: true
+            });
+            return;
+        }
+
+        // Format faculties data for public consumption
+        const faculties = school.faculties.map((faculty: any) => ({
+            id: faculty._id,
+            name: faculty.name,
+            description: faculty.description || null,
+            facultyId: faculty.facultyId || null,
+            departmentCount: faculty.departments?.length || 0,
+            departments: faculty.departments?.map((department: any) => ({
+                id: department._id,
+                name: department.name,
+                code: department.code || null
+            })) || [],
+            createdAt: faculty.createdAt || null
+        }));
+
+        res.status(200).json({
+            message: "Faculties retrieved successfully",
+            data: {
+                schoolId: school._id,
+                schoolName: school.name,
+                faculties,
+                totalFaculties: faculties.length
+            },
+            status: true
+        });
+
+    } catch (error) {
+        console.error("Error retrieving faculties:", error);
+        
+        // Handle specific MongoDB errors
+        if (error instanceof Error && error.name === 'CastError') {
+            res.status(400).json({ 
+                error: "Invalid School ID format", 
+                status: false 
+            });
+            return;
+        }
+
+        res.status(500).json({ 
+            error: "Internal server error", 
+            status: false 
+        });
+    }
+};
+
+
+
 
 // DEPARTMENT CONTROLLERS
 export const createDepartments = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -1204,6 +1293,115 @@ export const getDepartmentById = async (req: AuthenticatedRequest, res: Response
         res.status(500).json({ error: "Internal server error", status: false });
     }
 };
+
+
+// GET ALL DEPARTMENTS CONTROLLER (NO AUTHENTICATION)
+export const getAllDepartmentsPublic = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { schoolId, facultyId } = req.params;
+
+        // Validate required parameters
+        if (!schoolId) {
+            res.status(400).json({ 
+                error: "School ID is required", 
+                status: false 
+            });
+            return;
+        }
+
+        if (!facultyId) {
+            res.status(400).json({ 
+                error: "Faculty ID is required", 
+                status: false 
+            });
+            return;
+        }
+
+        // Find the school
+        const school = await School.findById(schoolId)
+            .select('name faculties')
+            .lean() as any;
+            
+        if (!school) {
+            res.status(404).json({ 
+                error: "School not found", 
+                status: false 
+            });
+            return;
+        }
+
+        // Find the faculty within the school
+        const faculty = school.faculties?.find((faculty: any) => 
+            faculty._id.toString() === facultyId ||
+            (faculty.facultyId && new RegExp(`^${faculty.facultyId}$`, "i").test(facultyId))
+        );
+        
+        if (!faculty) {
+            res.status(404).json({ 
+                error: "Faculty not found in this school", 
+                status: false 
+            });
+            return;
+        }
+
+        // Check if faculty has departments
+        if (!faculty.departments || faculty.departments.length === 0) {
+            res.status(200).json({
+                message: "No departments found in this faculty",
+                data: {
+                    schoolId: school._id,
+                    schoolName: school.name,
+                    facultyId: faculty._id,
+                    facultyName: faculty.name,
+                    departments: [],
+                    totalDepartments: 0
+                },
+                status: true
+            });
+            return;
+        }
+
+        // Format departments data for public consumption
+        const departments = faculty.departments.map((department: any) => ({
+            id: department._id,
+            name: department.name,
+            description: department.description || null,
+            code: department.code || null,
+            createdAt: department.createdAt || null
+        }));
+
+        res.status(200).json({
+            message: "Departments retrieved successfully",
+            data: {
+                schoolId: school._id,
+                schoolName: school.name,
+                facultyId: faculty._id,
+                facultyName: faculty.name,
+                departments,
+                totalDepartments: departments.length
+            },
+            status: true
+        });
+
+    } catch (error) {
+        console.error("Error retrieving departments:", error);
+        
+        // Handle specific MongoDB errors
+        if (error instanceof Error && error.name === 'CastError') {
+            res.status(400).json({ 
+                error: "Invalid School ID or Faculty ID format", 
+                status: false 
+            });
+            return;
+        }
+
+        res.status(500).json({ 
+            error: "Internal server error", 
+            status: false 
+        });
+    }
+};
+
 
 
 // COURSE CONTROLLERS

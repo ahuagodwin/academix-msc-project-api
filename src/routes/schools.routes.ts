@@ -16,12 +16,14 @@ schoolRouter.put("/faculty/update/:schoolId/:facultyId/", authProtect, authorize
 schoolRouter.delete("/faculty/delete/:schoolId/:facultyId/", authProtect, authorize("delete_school"), schoolService.deleteFaculty)
 schoolRouter.get("/faculty/all/:schoolId/", authProtect, authorize("read_school",), schoolService.getAllFaculties);
 schoolRouter.get("/faculty/:schoolId/:facultyId/", authProtect, authorize("read_school",), schoolService.getFacultyById);
+schoolRouter.get("/public/faculties/:schoolId/", schoolService.getAllFacultiesPublic);
 
 schoolRouter.post("/department/create/", authProtect, authorize("create_school"), schoolService.createDepartments)
 schoolRouter.put("/department/update/:schoolId/:facultyId/:departmentId/", authProtect, authorize("update_school"), schoolService.updateDepartment)
 schoolRouter.delete("/department/delete/:schoolId/:facultyId/:departmentId/", authProtect, authorize("delete_school"), schoolService.deleteDepartment)
 schoolRouter.get("/department/all/:schoolId/:facultyId/", authProtect, authorize("read_school",), schoolService.getAllDepartments);
 schoolRouter.get("/department/:schoolId/:facultyId/:departmentId/", authProtect, authorize("read_school"), schoolService.getDepartmentById);
+schoolRouter.get("/public/departments/", schoolService.getAllDepartmentsPublic);
 
 schoolRouter.post("/course/create/", authProtect, authorize("create_school"), schoolService.createCourses)
 schoolRouter.put("/course/update/:schoolId/:facultyId/:departmentId/:courseId/", authProtect, authorize("update_school"), schoolService.updateCourse)
