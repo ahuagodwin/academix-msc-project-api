@@ -406,6 +406,59 @@ export const getSchoolById = async (req: AuthenticatedRequest, res: Response): P
 }
 
 
+// GET ALL SCHOOLS CONTROLLER (NO AUTHENTICATION)
+export const getAllSchoolsPublic = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        // Check if res object is valid
+        if (!res || typeof res.status !== 'function') {
+            console.error("Invalid response object in getAllSchoolsPublic");
+            return;
+        }
+
+        // Fetch all schools with limited information for public access
+        const schools = await School.find()
+            .select('name location establishedYear description faculties')
+            .lean() as any[];
+
+        if (!schools || schools.length === 0) {
+            res.status(404).json({ error: "No schools found", status: false });
+            return;
+        }
+
+        // Format schools data for public consumption
+        const formattedSchools = schools.map((school: any) => ({
+            id: school._id,
+            name: school.name,
+            location: school.location,
+            establishedYear: school.establishedYear,
+            description: school.description,
+            facultyCount: school.faculties?.length || 0,
+            faculties: school.faculties?.map((faculty: any) => ({
+                id: faculty._id,
+                name: faculty.name,
+                departmentCount: faculty.departments?.length || 0
+            })) || []
+        }));
+
+        res.status(200).json({
+            message: "Schools retrieved successfully",
+            data: {
+                schools: formattedSchools,
+                totalSchools: formattedSchools.length
+            },
+            status: true
+        });
+    } catch (error) {
+        console.error("Error fetching schools:", error);
+        
+        // Check if res is still valid before using it
+        if (res && typeof res.status === 'function') {
+            res.status(500).json({ error: "Internal server error", status: false });
+        }
+    }
+};
+
+
 
 // FACULTY CONTROLLERS
 export const createFaculty = async (req: AuthenticatedRequest, res: Response): Promise<void> => {

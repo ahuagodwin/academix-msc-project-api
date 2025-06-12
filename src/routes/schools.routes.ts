@@ -9,6 +9,7 @@ schoolRouter.put("/update/:schoolId/", authProtect, authorize("update_school"), 
 schoolRouter.delete("/delete/:schoolId/", authProtect, authorize("delete_school"), schoolService.deleteSchool)
 schoolRouter.get("/all", authProtect, authorize("read_school",), schoolService.getAllSchools);
 schoolRouter.get("/:schoolId", authProtect, authorize("read_school",), schoolService.getSchoolById);
+schoolRouter.get("/public/schools/", schoolService.getAllSchoolsPublic);
 
 schoolRouter.post("/faculty/create/", authProtect, authorize("create_school"), schoolService.createFaculty);
 schoolRouter.put("/faculty/update/:schoolId/:facultyId/", authProtect, authorize("update_school"), schoolService.updateFaculty)
