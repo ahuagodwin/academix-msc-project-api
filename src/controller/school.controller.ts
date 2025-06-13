@@ -427,25 +427,22 @@ export const getAllSchoolsPublic = async (req: AuthenticatedRequest, res: Respon
 
         // Format schools data for public consumption
         const formattedSchools = schools.map((school: any) => ({
-            id: school._id,
+            schoolId: school._id,
             name: school.name,
-            location: school.location,
-            establishedYear: school.establishedYear,
             description: school.description,
-            facultyCount: school.faculties?.length || 0,
-            faculties: school.faculties?.map((faculty: any) => ({
-                id: faculty._id,
+            faculties: school?.faculties?.map((faculty: any) => ({
+                facultyId: faculty.facultyId,
                 name: faculty.name,
-                departmentCount: faculty.departments?.length || 0
+                departments: faculty?.departments?.map((department: any) => ({
+                    id: department?._id,
+                    name: department.name,
+                })) || []
             })) || []
         }));
 
         res.status(200).json({
             message: "Schools retrieved successfully",
-            data: {
-                schools: formattedSchools,
-                totalSchools: formattedSchools.length
-            },
+            schools: formattedSchools,
             status: true
         });
     } catch (error) {
@@ -1834,6 +1831,50 @@ export const getCourseById = async (req: AuthenticatedRequest, res: Response): P
         });
     } catch (error) {
         console.error("Error retrieving course:", error);
+        res.status(500).json({ error: "Internal server error", status: false });
+    }
+};
+
+
+export const getAllCoursesPublic = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { schoolId, facultyId, departmentId } = req.params;
+
+        // Find the school
+        const school = await School.findById(schoolId);
+        if (!school) {
+            res.status(404).json({ error: "School not found", status: false });
+            return;
+        }
+
+        // Find the faculty within the school
+        const faculty = school.faculties.find((faculty: any) =>
+            new RegExp(`^${faculty?.facultyId}$`, "i").test(facultyId)
+        );
+        if (!faculty) {
+            res.status(404).json({ error: "Faculty not found in this school", status: false });
+            return;
+        }
+
+        // Find the department within the faculty
+        const department = faculty.departments.find((dept: ISchool) =>
+            new RegExp(`^${dept?._id}$`, "i").test(departmentId)
+        );
+        if (!department) {
+            res.status(404).json({ error: "Department not found in this faculty", status: false });
+            return;
+        }
+
+        // Retrieve courses
+        const courses = department.courses;
+
+        res.status(200).json({
+            message: "Courses retrieved successfully",
+            courses,
+            status: true,
+        });
+    } catch (error) {
+        console.error("Error retrieving courses:", error);
         res.status(500).json({ error: "Internal server error", status: false });
     }
 };

@@ -11,6 +11,6 @@ export const getRedirectUrl = () => {
         return FUNDING_VERIFY_URL_LIVE_VERCEL;
       }
     }
-    return FUNDING_VERIFY_URL_LIVE_VERCEL || FUNDING_VERIFY_URL_LOCAL;
+    return FUNDING_VERIFY_URL_LOCAL || FUNDING_VERIFY_URL_LIVE_VERCEL;
   };
   
